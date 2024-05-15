@@ -153,6 +153,8 @@ func drawTerritoryTiles(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, ma
 
 			if terrain == 4 {
 				drawMountain(dc, x, y)
+			} else if terrain == 5 {
+				drawForest(dc, x, y)
 			}
 
 			// Draw cities
@@ -236,13 +238,12 @@ func drawCityNames(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeig
 	}
 }
 
-func DrawMap(saveData *fileio.PolytopiaSaveOutput) image.Image {
+func DrawMap(saveData *fileio.PolytopiaSaveOutput, highlightedTileX int, highlightedTileY int) image.Image {
 	mapHeight := saveData.MapHeight
 	mapWidth := saveData.MapWidth
 
 	maxImageWidth, maxImageHeight := getImagePosition(mapHeight, mapWidth)
 	dc := gg.NewContext(int(maxImageWidth), int(maxImageHeight))
-	fmt.Println("Map height: ", mapHeight, ", width: ", mapWidth)
 
 	font, err := truetype.Parse(goregular.TTF)
 	if err != nil {
@@ -257,6 +258,15 @@ func DrawMap(saveData *fileio.PolytopiaSaveOutput) image.Image {
 
 	drawTerritoryTiles(dc, saveData, mapHeight, mapWidth)
 	drawBorders(dc, saveData, mapHeight, mapWidth)
+
+	// draw highlighted tile
+	if highlightedTileX != -1 && highlightedTileY != -1 {
+		dc.SetRGB255(0, 0, 0)
+		x, y := getImagePosition(highlightedTileY, highlightedTileX)
+		dc.SetLineWidth(2.0)
+		dc.DrawRectangle(x, y, radius, radius)
+		dc.Stroke()
+	}
 
 	dc.InvertY()
 

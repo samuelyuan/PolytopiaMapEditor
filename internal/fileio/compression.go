@@ -3,7 +3,6 @@ package fileio
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"os"
 
@@ -39,8 +38,6 @@ func DecompressFile(inputFilename string) {
 	dataLength := len(inputBytes) - dataOffset
 	resultLength := dataLength + resultDiff
 
-	fmt.Println("Result length:", resultLength)
-
 	// decompress
 	decompressedContents := make([]byte, resultLength)
 	decompressedLength, err := lz4.UncompressBlock(inputBytes[dataOffset:], decompressedContents)
@@ -48,7 +45,6 @@ func DecompressFile(inputFilename string) {
 		panic(err)
 	}
 
-	fmt.Println("Decompressed data length:", decompressedLength)
 	decompressedFilename := inputFilename + ".decomp"
 	if err := os.WriteFile(decompressedFilename, decompressedContents[:decompressedLength], 0666); err != nil {
 		log.Fatal("Error writing decompressed contents", err)
@@ -73,8 +69,6 @@ func CompressFile(inputFilename string, outputFilename string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Compressed data length:", compressedLength)
-	fmt.Println("Decompressed data length:", len(inputBytes))
 
 	newCompressedContents := []byte{}
 	if decompressedLength >= 65536 {

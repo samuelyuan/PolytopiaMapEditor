@@ -645,7 +645,6 @@ func readAllPlayerData(streamReader *io.SectionReader) []PlayerData {
 	updateFileOffsetMap(fileOffsetMap, streamReader, allPlayersStartKey)
 
 	numPlayers := unsafeReadUint16(streamReader)
-	fmt.Println("Num players:", numPlayers)
 	allPlayerData := make([]PlayerData, int(numPlayers))
 
 	for i := 0; i < int(numPlayers); i++ {
