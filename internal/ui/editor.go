@@ -44,6 +44,7 @@ type editor struct {
 	tileOwnerSelect           *widget.Select
 	hasRoadCheckbox           *widget.Check
 	cityNameEntry             *widget.Entry
+	cityTileCoordinatesEntry  *widget.Entry
 	unitOwnerSelect           *widget.Select
 	unitTypeSelect            *widget.Select
 	unitHasMovedCheckbox      *widget.Check
@@ -108,6 +109,9 @@ func (e *editor) SetTileCoordinates(x int, y int) {
 		e.cityNameEntry.SetText("")
 		e.cityNameEntry.Disable()
 	}
+
+	e.cityTileCoordinatesEntry.SetText(fmt.Sprintf("(%v, %v)", tile.CapitalCoordinates[0], tile.CapitalCoordinates[1]))
+	e.cityTileCoordinatesEntry.Disable()
 
 	if tile.Unit != nil {
 		e.unitOwnerSelect.SetSelectedIndex(int(tile.Unit.Owner))
@@ -593,6 +597,11 @@ func createCityNameEntry(edit *editor) *widget.Entry {
 	return entry
 }
 
+func createcityTileCoordinatesEntry(edit *editor) *widget.Entry {
+	entry := widget.NewEntry()
+	return entry
+}
+
 func createUnitOwnerSelect(edit *editor) *widget.Select {
 	options := []string{"None"}
 	if edit.mapData != nil {
@@ -713,6 +722,7 @@ func newTilePropertiesBar(edit *editor) fyne.CanvasObject {
 		container.NewHBox(widget.NewLabel("Tile Owner"), edit.tileOwnerSelect),
 		container.NewHBox(widget.NewLabel("Has Road"), edit.hasRoadCheckbox),
 		container.NewHBox(widget.NewLabel("City Name"), edit.cityNameEntry),
+		container.NewHBox(widget.NewLabel("City Tile Coordinates"), edit.cityTileCoordinatesEntry),
 		container.NewHBox(widget.NewLabel("Unit Owner"), edit.unitOwnerSelect),
 		container.NewHBox(widget.NewLabel("Unit Type"), edit.unitTypeSelect),
 		container.NewHBox(widget.NewLabel("Unit Has Moved"), edit.unitHasMovedCheckbox),
@@ -753,7 +763,6 @@ func createPlayerCurrencyEntry(edit *editor, playerIndex int, playerCurrency int
 	entry.OnChanged = func(value string) {
 		currencyInt, err := strconv.Atoi(value)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Can't save non-numerical value %v to player currency", value))
 			entry.SetText(fmt.Sprintf("%v", playerCurrency))
 			return
 		}
@@ -851,6 +860,7 @@ func NewEditor() api.Editor {
 	edit.tileOwnerSelect = createTileOwnerSelect(edit)
 	edit.hasRoadCheckbox = createHasRoadCheckbox(edit)
 	edit.cityNameEntry = createCityNameEntry(edit)
+	edit.cityTileCoordinatesEntry = createcityTileCoordinatesEntry(edit)
 	edit.unitOwnerSelect = createUnitOwnerSelect(edit)
 	edit.unitTypeSelect = createUnitTypeSelect(edit)
 	edit.unitHasMovedCheckbox = createUnitHasMovedCheckbox(edit)
