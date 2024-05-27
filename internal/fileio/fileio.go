@@ -3,6 +3,7 @@ package fileio
 import (
 	"encoding/binary"
 	"fmt"
+	"image/color"
 	"io"
 	"log"
 	"os"
@@ -172,7 +173,6 @@ type PolytopiaSaveOutput struct {
 	MapHeight         int
 	MapWidth          int
 	MapHeaderOutput   MapHeaderOutput
-	OwnerTribeMap     map[int]int
 	InitialTileData   [][]TileData
 	InitialPlayerData []PlayerData
 	TileData          [][]TileData
@@ -674,21 +674,6 @@ func updateTribeUnitMap(tileDataHeader TileDataHeader, unitData UnitData) {
 	tribeUnitMap[tribeOwner] = append(tribeUnitMap[tribeOwner], unitLocationData)
 }
 
-func buildOwnerTribeMap(allPlayerData []PlayerData) map[int]int {
-	ownerTribeMap := make(map[int]int)
-
-	for i := 0; i < len(allPlayerData); i++ {
-		playerData := allPlayerData[i]
-		mappedTribe, ok := ownerTribeMap[playerData.Id]
-		if ok {
-			log.Fatal(fmt.Sprintf("Owner to tribe map has duplicate player id %v already mapped to %v", playerData.Id, mappedTribe))
-		}
-		ownerTribeMap[playerData.Id] = playerData.Tribe
-	}
-
-	return ownerTribeMap
-}
-
 func buildTribeCityMap(currentMapHeaderOutput MapHeaderOutput, tileData [][]TileData) map[int][]CityLocationData {
 	tribeCityMap := make(map[int][]CityLocationData)
 	for i := 0; i < int(currentMapHeaderOutput.MapHeight); i++ {
@@ -718,6 +703,49 @@ func buildTribeCityMap(currentMapHeaderOutput MapHeaderOutput, tileData [][]Tile
 	return tribeCityMap
 }
 
+func GetPlayerColor(playerData PlayerData) color.RGBA {
+	if playerData.OverrideColor[3] != 255 {
+		return color.RGBA{uint8(playerData.OverrideColor[2]), uint8(playerData.OverrideColor[1]), uint8(playerData.OverrideColor[0]), 255}
+	}
+
+	switch playerData.Tribe {
+	case 2: // Ai-Mo
+		return color.RGBA{54, 226, 170, 255}
+	case 3: // Aquarion
+		return color.RGBA{243, 131, 129, 255}
+	case 4: // Bardur
+		return color.RGBA{53, 37, 20, 255}
+	case 5: // Elyrion
+		return color.RGBA{255, 0, 153, 255}
+	case 6: // Hoodrick
+		return color.RGBA{153, 102, 0, 255}
+	case 7: // Imperius
+		return color.RGBA{0, 0, 255, 255}
+	case 8: // Kickoo
+		return color.RGBA{0, 255, 0, 255}
+	case 9: // Luxidoor
+		return color.RGBA{171, 59, 214, 255}
+	case 10: // Oumaji
+		return color.RGBA{255, 255, 0, 255}
+	case 11: // Quetzali
+		return color.RGBA{39, 92, 74, 255}
+	case 12: // Vengir
+		return color.RGBA{255, 255, 255, 255}
+	case 13: // Xin-xi
+		return color.RGBA{204, 0, 0, 255}
+	case 14: // Yadakk
+		return color.RGBA{125, 35, 28, 255}
+	case 15: // Zebasi
+		return color.RGBA{255, 153, 0, 255}
+	case 16: // Polaris
+		return color.RGBA{182, 161, 133, 255}
+	case 17: // Cymanti
+		return color.RGBA{194, 253, 0, 255}
+	}
+
+	return color.RGBA{128, 128, 128, 255}
+}
+
 func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, error) {
 	inputFile, err := os.OpenFile(inputFilename, os.O_RDWR, 0644)
 	defer inputFile.Close()
@@ -745,7 +773,6 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	}
 	readTileData(streamReader, initialTileData, initialMapHeaderOutput.MapWidth, initialMapHeaderOutput.MapHeight)
 	initialPlayerData := readAllPlayerData(streamReader)
-	ownerTribeMap := buildOwnerTribeMap(initialPlayerData)
 
 	_ = readFixedList(streamReader, 3)
 
@@ -758,7 +785,6 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	}
 	readTileData(streamReader, tileData, currentMapHeaderOutput.MapWidth, currentMapHeaderOutput.MapHeight)
 	playerData := readAllPlayerData(streamReader)
-	ownerTribeMap = buildOwnerTribeMap(playerData)
 
 	tribeCityMap := buildTribeCityMap(currentMapHeaderOutput, tileData)
 
@@ -766,7 +792,6 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 		MapHeight:         currentMapHeaderOutput.MapHeight,
 		MapWidth:          currentMapHeaderOutput.MapWidth,
 		MapHeaderOutput:   currentMapHeaderOutput,
-		OwnerTribeMap:     ownerTribeMap,
 		InitialTileData:   initialTileData,
 		InitialPlayerData: initialPlayerData,
 		TileData:          tileData,

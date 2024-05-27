@@ -13,7 +13,9 @@ import (
 	"golang.org/x/image/draw"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
@@ -28,10 +30,12 @@ type editor struct {
 	drawSurface             *interactiveRaster
 	status                  *widget.Label
 	zoomLabel               *widget.Label
-	palette                 fyne.CanvasObject
+	tilePropertiesBar       fyne.CanvasObject
+	playerPropertiesBar     fyne.CanvasObject
 	cache                   *image.RGBA
 	cacheWidth, cacheHeight int
 
+	// Tile properties bar
 	tileCoordinatesProperties *widget.Label
 	terrainSelect             *widget.Select
 	climateSelect             *widget.Select
@@ -46,6 +50,7 @@ type editor struct {
 	unitHasAttackedCheckbox   *widget.Check
 	mapTileProperties         *widget.Label
 
+	// map properties
 	uri                   string
 	img                   *image.RGBA
 	mapData               *fileio.PolytopiaSaveOutput
@@ -61,20 +66,16 @@ type editor struct {
 	recentMenu *fyne.Menu
 }
 
-func (e *editor) PixelColor(x, y int) color.Color {
-	return e.img.At(x, y)
-}
-
 func colorToBytes(col color.Color) []uint8 {
 	r, g, b, a := col.RGBA()
 	return []uint8{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)}
 }
 
 func (e *editor) Clicked(x, y int, edit api.Editor) {
-	edit.SetHexCoordinates(x, y)
+	edit.SetTileCoordinates(x, y)
 }
 
-func (e *editor) SetHexCoordinates(x int, y int) {
+func (e *editor) SetTileCoordinates(x int, y int) {
 	tileX, tileY := mapdraw.GetTileCoordinates(x, y, e.mapHeight, e.mapWidth)
 	e.tileX = tileX
 	e.tileY = tileY
@@ -131,28 +132,28 @@ func (e *editor) SetHexCoordinates(x int, y int) {
 	e.mapTileProperties.SetText(e.currentTileProperties)
 }
 
-func (e *editor) buildUI() fyne.CanvasObject {
-	return container.NewScroll(e.drawSurface)
+func (edit *editor) buildUI() fyne.CanvasObject {
+	return container.NewScroll(edit.drawSurface)
 }
 
-func (e *editor) setZoom(zoom int) {
-	e.zoom = zoom
-	e.updateSizes()
-	e.drawSurface.Refresh()
+func (edit *editor) setZoom(zoom int) {
+	edit.zoom = zoom
+	edit.updateSizes()
+	edit.drawSurface.Refresh()
 }
 
-func (e *editor) draw(w, h int) image.Image {
-	if e.cacheWidth == 0 || e.cacheHeight == 0 {
+func (edit *editor) draw(w, h int) image.Image {
+	if edit.cacheWidth == 0 || edit.cacheHeight == 0 {
 		return image.NewRGBA(image.Rect(0, 0, w, h))
 	}
 
-	if w > e.cacheWidth || h > e.cacheHeight {
+	if w > edit.cacheWidth || h > edit.cacheHeight {
 		bigger := image.NewRGBA(image.Rect(0, 0, w, h))
-		draw.Draw(bigger, e.cache.Bounds(), e.cache, image.Point{}, draw.Over)
+		draw.Draw(bigger, edit.cache.Bounds(), edit.cache, image.Point{}, draw.Over)
 		return bigger
 	}
 
-	return e.cache
+	return edit.cache
 }
 
 func (e *editor) updateSizes() {
@@ -389,17 +390,18 @@ func (edit *editor) updateZoom(val int) {
 	edit.zoomLabel.SetText(fmt.Sprintf("%d%%", edit.zoom*100))
 }
 
-func (e *editor) createContainer() fyne.CanvasObject {
-	toolbar := buildToolbar(e)
-	e.palette = newPalette(e)
+func (edit *editor) createContainer() fyne.CanvasObject {
+	toolbar := buildToolbar(edit)
+	edit.tilePropertiesBar = newTilePropertiesBar(edit)
+	edit.playerPropertiesBar = newPlayerPropertiesBar(edit)
 	return fyne.NewContainerWithLayout(
-		layout.NewBorderLayout(toolbar, e.status, e.palette, nil),
-		toolbar, e.status, e.palette, e.buildUI(),
+		layout.NewBorderLayout(toolbar, edit.status, edit.tilePropertiesBar, edit.playerPropertiesBar),
+		toolbar, edit.status, edit.tilePropertiesBar, edit.buildUI(), edit.playerPropertiesBar,
 	)
 }
 
 func createTerrainSelect(edit *editor) *widget.Select {
-	options := []string{"1 (Coast)", "2 (Ocean)", "3 (Field)", "4 (Mountain)", "5 (Forest)", "6 (Ice)"}
+	options := getTerrainOptions()
 	changeFunc := func(s string) {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
@@ -432,9 +434,7 @@ func createTerrainSelect(edit *editor) *widget.Select {
 }
 
 func createClimateSelect(edit *editor) *widget.Select {
-	options := []string{"1 (Xin-xi)", "2 (Imperius)", "3 (Bardur)", "4 (Oumaji)", "5 (Kickoo)",
-		"6 (Hoodrick)", "7 (Luxidoor)", "8 (Vengir)", "9 (Zebasi)", "10 (Ai-Mo)",
-		"11 (Aquarion)", "12 (Quetzali)", "13 (Elyrion)", "14 (Yadakk)", "15 (Polaris)", "16 (Cymanti)"}
+	options := getClimateOptions()
 	changeFunc := func(s string) {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
@@ -453,8 +453,7 @@ func createClimateSelect(edit *editor) *widget.Select {
 }
 
 func createResourceSelect(edit *editor) *widget.Select {
-	options := []string{"None", "1 (Game)", "2 (Crop)", "3 (Fish)", "4 (Whale)", "5 (Metal)",
-		"6 (Fruit)", "7 (Spores)", "8 (Starfish)", "9 (Aquacrop)"}
+	options := getResourceSelectOptions()
 	changeFunc := func(s string) {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
@@ -481,60 +480,7 @@ func createResourceSelect(edit *editor) *widget.Select {
 }
 
 func createImprovementSelect(edit *editor) *widget.Select {
-	options := []string{
-		"None",
-		"1 (City)",
-		"2 (Ruin)",
-		"3",
-		"4 (Customs House)",
-		"5 (Farm)",
-		"6 (Windmill)",
-		"7",
-		"8 (Port)",
-		"9",
-		"10",
-		"11",
-		"12  (Lumber Hut)",
-		"13",
-		"14",
-		"15",
-		"16",
-		"17 (Temple)",
-		"18 (Forest Temple)",
-		"19 (Water Temple)",
-		"20 (Mountain Temple)",
-		"21 (Mine)",
-		"22 (Forge)",
-		"23 (Altar of Peace)",
-		"24 (Tower of Wisdom)",
-		"25 (Grand Bazaar)",
-		"26 (Emperor's Tomb)",
-		"27 (Gate of Power)",
-		"28 (Park of Fortune)",
-		"29 (Eye of God)",
-		"30",
-		"31",
-		"32",
-		"33 (Outpost)",
-		"34 (Ice Bank)",
-		"35 (Ice Temple)",
-		"36",
-		"37 (Fungi)",
-		"38",
-		"39 (Mycelium)",
-		"40",
-		"41",
-		"42",
-		"43",
-		"44",
-		"45",
-		"46",
-		"47 (Lighthouse)",
-		"48 (Bridge)",
-		"49 (Aquafarm)",
-		"50 (Market)",
-		"51",
-	}
+	options := getImprovementOptions()
 	changeFunc := func(s string) {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
@@ -693,54 +639,7 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 }
 
 func createUnitTypeSelect(edit *editor) *widget.Select {
-	options := []string{
-		"None",
-		"1 (Scout)",
-		"2 (Warrior)",
-		"3 (Rider)",
-		"4 (Knight)",
-		"5 (Defender)",
-		"6 (Ship)",
-		"7 (Battleship)",
-		"8 (Catapult)",
-		"9 (Archer)",
-		"10 (Mind Bender)",
-		"11 (Swordsman)",
-		"12 (Giant)",
-		"13 (Bunny)",
-		"14 (Boat)",
-		"15 (Polytaur)",
-		"16 (Navalon)",
-		"17 (Dragon Egg)",
-		"18 (Baby Dragon)",
-		"19 (Fire Dragon)",
-		"20 (Amphibian)",
-		"21 (Tridention)",
-		"22 (Mooni)",
-		"23 (Battle Sled)",
-		"24 (Ice Fortress)",
-		"25 (Ice Archer)",
-		"26 (Crab)",
-		"27 (Gaami)",
-		"28 (Hexapod)",
-		"29 (Doomux)",
-		"30 (Phychi)",
-		"31 (Kiton)",
-		"32 (Exida)",
-		"33 (Centipede)",
-		"34 (Segment)",
-		"35 (Raychi)",
-		"36 (Shaman)",
-		"37 (Dagger)",
-		"38 (Cloak)",
-		"39 (Cloak Boat)",
-		"40 (Pirate)",
-		"41 (Bombership)",
-		"42 (Scoutship)",
-		"43 (Transportship)",
-		"44 (Rammership)",
-		"45 (Juggernaut)",
-	}
+	options := getUnitTypeOptions()
 
 	changeFunc := func(s string) {
 		if edit.tileX == -1 || edit.tileY == -1 {
@@ -793,7 +692,7 @@ func createUnitHasAttackedCheckbox(edit *editor) *widget.Check {
 	})
 }
 
-func newPalette(edit *editor) fyne.CanvasObject {
+func newTilePropertiesBar(edit *editor) fyne.CanvasObject {
 	zoom := container.NewHBox(
 		widget.NewButtonWithIcon("", theme.ZoomOutIcon(), func() {
 			edit.updateZoom(edit.zoom / 2)
@@ -823,6 +722,113 @@ func newPalette(edit *editor) fyne.CanvasObject {
 	return container.NewVBox(options...)
 }
 
+func createPlayerNameEntry(edit *editor, playerIndex int, playerName string) *widget.Entry {
+	entry := widget.NewEntry()
+	entry.SetText(playerName)
+	entry.OnChanged = func(value string) {
+		edit.mapData.PlayerData[playerIndex].Name = value
+	}
+	return entry
+}
+
+func createPlayerTribeSelect(edit *editor, playerIndex int) *widget.Select {
+	options := getPlayerTribeOptions()
+	changeFunc := func(s string) {
+		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		edit.mapData.PlayerData[playerIndex].Tribe = optionInt
+
+		img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+		edit.img = fixEncoding(img)
+		edit.updateSizes()
+	}
+	return widget.NewSelect(options, changeFunc)
+}
+
+func createPlayerCurrencyEntry(edit *editor, playerIndex int, playerCurrency int) *widget.Entry {
+	entry := widget.NewEntry()
+	entry.SetText(fmt.Sprintf("%v", playerCurrency))
+	entry.OnChanged = func(value string) {
+		currencyInt, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Can't save non-numerical value %v to player currency", value))
+			entry.SetText(fmt.Sprintf("%v", playerCurrency))
+			return
+		}
+		if currencyInt < 0 {
+			currencyInt = 0
+			entry.SetText(fmt.Sprintf("%v", currencyInt))
+		} else if currencyInt > 2147483647 {
+			// no overflow for max uint32
+			currencyInt = 2147483647
+			entry.SetText(fmt.Sprintf("%v", currencyInt))
+		}
+		edit.mapData.PlayerData[playerIndex].Currency = currencyInt
+	}
+	return entry
+}
+
+func createPlayerColorBox(edit *editor, playerIndex int, overrideColor []int) *canvas.Rectangle {
+	playerColor := fileio.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
+	playerColorBox := canvas.NewRectangle(playerColor)
+	playerColorBox.Resize(fyne.NewSize(1500, 1000))
+	return playerColorBox
+}
+
+func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor []int) *widget.Button {
+	playerColor := fileio.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
+	colorPickerButton := widget.NewButton("Edit", func() {
+		picker := dialog.NewColorPicker("Pick a Color", "Please pick tribe color:", func(newColor color.Color) {
+			newColorR, newColorG, newColorB, _ := newColor.RGBA()
+			edit.mapData.PlayerData[playerIndex].OverrideColor = []int{int(newColorB >> 8), int(newColorG >> 8), int(newColorR >> 8), 0}
+
+			img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+			edit.img = fixEncoding(img)
+			edit.updateSizes()
+		}, edit.win)
+		picker.Advanced = true
+		picker.SetColor(playerColor)
+		picker.Show()
+	})
+
+	return colorPickerButton
+}
+
+func newPlayerPropertiesBar(edit *editor) fyne.CanvasObject {
+	options := append([]fyne.CanvasObject{
+		container.NewGridWithColumns(1),
+		widget.NewLabel("Players"),
+	})
+
+	if edit.mapData != nil {
+		for i := 0; i < len(edit.mapData.PlayerData); i++ {
+			playerData := edit.mapData.PlayerData[i]
+			if playerData.Id == 255 {
+				continue
+			}
+
+			playerIdLabel := widget.NewLabel(fmt.Sprintf("Player %d", playerData.Id))
+			playerNameEntry := createPlayerNameEntry(edit, i, playerData.Name)
+			playerTribeSelect := createPlayerTribeSelect(edit, i)
+			playerTribeSelect.SetSelectedIndex(playerData.Tribe - 2) // offset by 2 because options 0 and 1 aren't there
+			playerStarsEntry := createPlayerCurrencyEntry(edit, i, playerData.Currency)
+			playerColorBox := createPlayerColorBox(edit, i, playerData.OverrideColor)
+			playerColorPickerButton := createPlayerColorPickerButton(edit, i, playerData.OverrideColor)
+
+			options = append(options, []fyne.CanvasObject{
+				container.NewHBox(playerIdLabel),
+				playerNameEntry,
+				playerTribeSelect,
+				container.NewHBox(widget.NewLabel("Stars"), playerStarsEntry),
+				container.NewHBox(widget.NewLabel("Color"), playerColorBox, playerColorPickerButton),
+			}...)
+		}
+	}
+	return container.NewVScroll(container.NewVBox(options...))
+}
+
 // NewEditor creates a new pixel editor that is ready to have a file loaded
 func NewEditor() api.Editor {
 	mapTileProperties := widget.NewLabel("Tile Properties")
@@ -833,7 +839,7 @@ func NewEditor() api.Editor {
 		zoomLabel:                 widget.NewLabel("100%"),
 		mapTileProperties:         mapTileProperties,
 		tileCoordinatesProperties: tileCoordinatesProperties,
-		status:                    newStatusBar(),
+		status:                    widget.NewLabel("Open a file"),
 		tileX:                     -1,
 		tileY:                     -1,
 	}
@@ -849,5 +855,6 @@ func NewEditor() api.Editor {
 	edit.unitTypeSelect = createUnitTypeSelect(edit)
 	edit.unitHasMovedCheckbox = createUnitHasMovedCheckbox(edit)
 	edit.unitHasAttackedCheckbox = createUnitHasAttackedCheckbox(edit)
+
 	return edit
 }

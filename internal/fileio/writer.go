@@ -73,11 +73,10 @@ func GetFileRemainingData(inputFile *os.File, offset int) []byte {
 
 func WriteAndShiftData(inputFilename string, offsetStartOriginalBlockKey string, offsetEndOriginalBlockKey string, newData []byte) {
 	// Update file offsets to make sure they are up to date
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+	_, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
-	fmt.Println(fmt.Sprintf("Dimensions width: %v, height: %v", saveOutput.MapWidth, saveOutput.MapHeight))
 
 	// Open file to modify
 	inputFile, err := os.OpenFile(inputFilename, os.O_RDWR, 0644)
@@ -132,7 +131,7 @@ func ConvertByteList(oldArr []int) []byte {
 	newArr := make([]byte, len(oldArr))
 	for i := 0; i < len(oldArr); i++ {
 		if oldArr[i] > 255 {
-			log.Fatal("Byte list has value over 255")
+			log.Fatal(fmt.Sprintf("Byte list has value over 255. Value is %v for index %v", oldArr[i], i))
 		}
 		newArr[i] = byte(oldArr[i])
 	}
@@ -746,7 +745,7 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 		TotalUnitsKilled:     0,
 		TotalUnitsLost:       0,
 		TotalTribesDestroyed: 0,
-		OverrideColor:        []int{int(overrideColor.B), int(overrideColor.G), int(overrideColor.A), 0},
+		OverrideColor:        []int{int(overrideColor.B), int(overrideColor.G), int(overrideColor.R), 0},
 		UnknownByte2:         0,
 		UniqueImprovements:   []int{},
 		DiplomacyArr:         []DiplomacyData{},

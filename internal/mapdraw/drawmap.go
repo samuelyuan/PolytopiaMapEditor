@@ -59,55 +59,11 @@ func getPhysicalMapTileColor(terrain int) color.RGBA {
 
 func getPoliticalMapTileColor(saveData *fileio.PolytopiaSaveOutput, row int, column int) color.RGBA {
 	tileOwner := saveData.TileData[row][column].Owner
-	tribe, ok := saveData.OwnerTribeMap[tileOwner]
-	if !ok {
-		// default
-		return color.RGBA{0, 0, 0, 255}
-	}
-
 	for i := 0; i < len(saveData.PlayerData); i++ {
 		playerData := saveData.PlayerData[i]
 		if playerData.Id == tileOwner {
-			// override color
-			if playerData.OverrideColor[3] != 255 {
-				return color.RGBA{uint8(playerData.OverrideColor[2]), uint8(playerData.OverrideColor[1]), uint8(playerData.OverrideColor[0]), 255}
-			}
+			return fileio.GetPlayerColor(playerData)
 		}
-	}
-
-	switch tribe {
-	case 2: // Ai-Mo
-		return color.RGBA{54, 226, 170, 255}
-	case 3: // Aquarion
-		return color.RGBA{243, 131, 129, 255}
-	case 4: // Bardur
-		return color.RGBA{53, 37, 20, 255}
-	case 5: // Elyrion
-		return color.RGBA{255, 0, 153, 255}
-	case 6: // Hoodrick
-		return color.RGBA{153, 102, 0, 255}
-	case 7: // Imperius
-		return color.RGBA{0, 0, 255, 255}
-	case 8: // Kickoo
-		return color.RGBA{0, 255, 0, 255}
-	case 9: // Luxidoor
-		return color.RGBA{171, 59, 214, 255}
-	case 10: // Oumaji
-		return color.RGBA{255, 255, 0, 255}
-	case 11: // Quetzali
-		return color.RGBA{39, 92, 74, 255}
-	case 12: // Vengir
-		return color.RGBA{255, 255, 255, 255}
-	case 13: // Xin-xi
-		return color.RGBA{204, 0, 0, 255}
-	case 14: // Yadakk
-		return color.RGBA{125, 35, 28, 255}
-	case 15: // Zebasi
-		return color.RGBA{255, 153, 0, 255}
-	case 16: // Polaris
-		return color.RGBA{182, 161, 133, 255}
-	case 17: // Cymanti
-		return color.RGBA{194, 253, 0, 255}
 	}
 
 	return color.RGBA{128, 128, 128, 255}
@@ -281,22 +237,8 @@ func SaveImage(outputFilename string, im image.Image) {
 	fmt.Println("Saved image to", outputFilename)
 }
 
-func GetTileCoordinates(pixelX int, pixelY int, mapHeight int, mapWidth int) (int, int) {
-	tileX := -1
-	tileY := -1
-	for i := 0; i < mapHeight; i++ {
-		for j := 0; j < mapWidth; j++ {
-			tileTopLeftCornerX, tileTopLeftCornerY := getImagePosition(i, j)
-			tileBottomRightCornerX, tileBottomRightCornerY := getImagePosition(i+1, j+1)
-
-			if float64(pixelX) >= tileTopLeftCornerX && float64(pixelX) <= tileBottomRightCornerX &&
-				float64(pixelY) >= tileTopLeftCornerY && float64(pixelY) <= tileBottomRightCornerY {
-				tileX = j
-				tileY = (mapHeight - 1) - i
-				break
-			}
-		}
-	}
-
+func GetTileCoordinates(pixelX int, pixelY int, mapWidth int, mapHeight int) (int, int) {
+	tileX := int(math.Floor(float64(pixelX) / radius))
+	tileY := (mapHeight - 1) - int(math.Floor(float64(pixelY)/radius))
 	return tileX, tileY
 }

@@ -12,5 +12,5 @@ type Editor interface {
 	Save()                       // Save writes the image back to its source location
 	SaveAs(fyne.URIWriteCloser)  // SaveAs specifies a data stream to save to
 
-	SetHexCoordinates(x int, y int)
+	SetTileCoordinates(x int, y int)
 }
