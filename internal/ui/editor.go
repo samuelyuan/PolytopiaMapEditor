@@ -320,8 +320,23 @@ func (edit *editor) UnlockAllTechForPlayer(newTribe int) {
 		22,
 		23,
 		24,
+		25, // Aquarion only, Free Diving
+		26, // Aquarion only, Spearing
+		27, // Aquarion only, Riding
+		28, // Elyrion only, Forest Magic
+		30, // Polaris only, Frostwork
+		31, // Polaris only, Polar Warfare
+		32, // Polaris only, Polarism
+		33, // Cymanti only, Oceanology
+		35, // Cymanti only, Shock Tactics
+		36, // Cymanti only, Recycling
+		37, // Cymanti only, Hydrology
 		38,
 		39,
+		40, // Cymanti only, Fishing
+		41, // Polaris only, Sledding
+		42, // Polaris only, Ice Fishing
+		43, // Cymanti only, Pescetism
 	}
 	for i := 0; i < len(edit.mapData.PlayerData); i++ {
 		if edit.mapData.PlayerData[i].Id == newTribe {
@@ -573,6 +588,10 @@ func createHasRoadCheckbox(edit *editor) *widget.Check {
 		}
 
 		edit.mapData.TileData[edit.tileY][edit.tileX].HasRoad = value
+
+		img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+		edit.img = fixEncoding(img)
+		edit.updateSizes()
 	})
 }
 
@@ -625,8 +644,8 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 
 		if s == "None" {
 			edit.mapData.TileData[edit.tileY][edit.tileX].Unit.Owner = 0
-			if edit.mapData.TileData[edit.tileY][edit.tileX].PreviousUnit != nil {
-				edit.mapData.TileData[edit.tileY][edit.tileX].PreviousUnit.Owner = 0
+			if edit.mapData.TileData[edit.tileY][edit.tileX].PassengerUnit != nil {
+				edit.mapData.TileData[edit.tileY][edit.tileX].PassengerUnit.Owner = 0
 			}
 			return
 		}
@@ -636,8 +655,8 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 			log.Fatal(err)
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].Unit.Owner = uint8(optionInt)
-		if edit.mapData.TileData[edit.tileY][edit.tileX].PreviousUnit != nil {
-			edit.mapData.TileData[edit.tileY][edit.tileX].PreviousUnit.Owner = uint8(optionInt)
+		if edit.mapData.TileData[edit.tileY][edit.tileX].PassengerUnit != nil {
+			edit.mapData.TileData[edit.tileY][edit.tileX].PassengerUnit.Owner = uint8(optionInt)
 		}
 
 		img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
@@ -780,14 +799,14 @@ func createPlayerCurrencyEntry(edit *editor, playerIndex int, playerCurrency int
 }
 
 func createPlayerColorBox(edit *editor, playerIndex int, overrideColor []int) *canvas.Rectangle {
-	playerColor := fileio.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
+	playerColor := mapdraw.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
 	playerColorBox := canvas.NewRectangle(playerColor)
 	playerColorBox.Resize(fyne.NewSize(1500, 1000))
 	return playerColorBox
 }
 
 func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor []int) *widget.Button {
-	playerColor := fileio.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
+	playerColor := mapdraw.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
 	colorPickerButton := widget.NewButton("Edit", func() {
 		picker := dialog.NewColorPicker("Pick a Color", "Please pick tribe color:", func(newColor color.Color) {
 			newColorR, newColorG, newColorB, _ := newColor.RGBA()

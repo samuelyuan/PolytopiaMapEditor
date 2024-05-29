@@ -1,6 +1,7 @@
 package fileio
 
 import (
+	"fmt"
 	"image/color"
 	"reflect"
 	"testing"
@@ -59,7 +60,8 @@ func TestConvertUnitDataToBytes(t *testing.T) {
 		Id:                 4,
 		Owner:              4,
 		UnitType:           2,
-		Unknown:            [8]byte{0, 0, 0, 0, 0, 0, 0, 0},
+		FollowerUnitId:     0,
+		LeaderUnitId:       0,
 		CurrentCoordinates: [2]int32{8, 2},
 		HomeCoordinates:    [2]int32{8, 2},
 		Health:             100,
@@ -92,7 +94,8 @@ func TestConvertEmptyTileDataToBytes(t *testing.T) {
 		ImprovementType:    -1,
 		ImprovementData:    nil,
 		Unit:               nil,
-		BufferUnitData:     []int{},
+		UnitEffectData:     []int{},
+		UnitDirectionData:  []int{},
 		PlayerVisibility:   []int{},
 		HasRoad:            false,
 		HasWaterRoute:      false,
@@ -113,7 +116,7 @@ func TestConvertEmptyTileDataToBytes(t *testing.T) {
 	}
 }
 
-func TestConvertTileDataToBytes(t *testing.T) {
+func TestConvertTileDataWithImprovementToBytes(t *testing.T) {
 	tileData := TileData{
 		WorldCoordinates:   [2]int{3, 1},
 		Terrain:            3,
@@ -142,12 +145,13 @@ func TestConvertTileDataToBytes(t *testing.T) {
 			RebellionFlag:          0,
 			RebellionBuffer:        []int{},
 		},
-		Unit:             nil,
-		BufferUnitData:   []int{},
-		PlayerVisibility: []int{},
-		HasRoad:          false,
-		HasWaterRoute:    false,
-		Unknown:          []int{0, 0, 0, 0},
+		Unit:              nil,
+		UnitEffectData:    []int{},
+		UnitDirectionData: []int{},
+		PlayerVisibility:  []int{},
+		HasRoad:           false,
+		HasWaterRoute:     false,
+		Unknown:           []int{0, 0, 0, 0},
 	}
 
 	resultBytes := ConvertTileToBytes(tileData)
@@ -162,6 +166,57 @@ func TestConvertTileDataToBytes(t *testing.T) {
 	if !reflect.DeepEqual(resultBytes, expectedBytes) {
 		t.Fatalf(`result = %v, expected = %v`, resultBytes, expectedBytes)
 	}
+}
+
+func TestConvertTileDataWithUnitToBytes(t *testing.T) {
+	tileData := TileData{
+		WorldCoordinates:   [2]int{3, 1},
+		Terrain:            3,
+		Climate:            8,
+		Altitude:           1,
+		Owner:              0,
+		Capital:            0,
+		CapitalCoordinates: [2]int{-1, -1},
+		ResourceExists:     false,
+		ResourceType:       -1,
+		ImprovementExists:  false,
+		ImprovementType:    0,
+		ImprovementData:    nil,
+		Unit: &UnitData{
+			Id:                 4,
+			Owner:              4,
+			UnitType:           2,
+			FollowerUnitId:     0,
+			LeaderUnitId:       0,
+			CurrentCoordinates: [2]int32{3, 1},
+			HomeCoordinates:    [2]int32{3, 1},
+			Health:             100,
+			PromotionLevel:     0,
+			Experience:         0,
+			Moved:              false,
+			Attacked:           false,
+			Flipped:            false,
+			CreatedTurn:        0,
+		},
+		UnitEffectData:    []int{1},
+		UnitDirectionData: []int{255, 255, 1, 0, 0},
+		PlayerVisibility:  []int{},
+		HasRoad:           false,
+		HasWaterRoute:     false,
+		Unknown:           []int{0, 0, 0, 0},
+	}
+
+	resultBytes := ConvertTileToBytes(tileData)
+	expectedBytes := []byte{3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 8, 0, 1, 0, 0, 0,
+		// coordinates
+		255, 255, 255, 255, 255, 255, 255, 255,
+		// resource
+		0,
+		// improvement
+		0,
+		1, 4, 0, 0, 0, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 255, 255, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	compareArrays(t, resultBytes, expectedBytes)
 }
 
 func TestConvertPlayerDataToBytes(t *testing.T) {
@@ -362,16 +417,34 @@ func TestBuildPlayer(t *testing.T) {
 		15, 0, 0, 0, 0, 16, 0, 0, 0, 0, 17, 0, 0, 0, 0, 255, 0, 0, 0, 0,
 		5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		// override color
-		200, 150, 255, 0,
+		200, 150, 100, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 255, 255, 255, 255,
 	}
 
+	compareArrays(t, resultBytes, expectedBytes)
+}
+
+func compareArrays(t *testing.T, resultBytes []byte, expectedBytes []byte) {
 	if !reflect.DeepEqual(len(resultBytes), len(expectedBytes)) {
 		t.Fatalf(`Size not equal. Result = %v (size = %v), expected = %v (size = %v)`,
 			resultBytes, len(resultBytes), expectedBytes, len(expectedBytes))
 	}
 	if !reflect.DeepEqual(resultBytes, expectedBytes) {
+		findArrayDifference(resultBytes, expectedBytes)
 		t.Fatalf(`Contents not equal. Result = %v, expected = %v`, resultBytes, expectedBytes)
+	}
+}
+
+func findArrayDifference(resultBytes []byte, expectedBytes []byte) {
+	if len(resultBytes) != len(expectedBytes) {
+		fmt.Println("Array lengths not equal.")
+		return
+	}
+
+	for i := 0; i < len(resultBytes); i++ {
+		if resultBytes[i] != expectedBytes[i] {
+			fmt.Println("Not equal at index", i, ", result:", resultBytes[i], ", expected:", expectedBytes[i])
+		}
 	}
 }
