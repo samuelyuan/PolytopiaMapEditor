@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
+
+	"github.com/samuelyuan/PolytopiaMapEditor/internal/fileio"
 )
 
 const (
@@ -15,6 +15,8 @@ func (edit *editor) buildCheatsMenu() *fyne.Menu {
 	return fyne.NewMenu("Cheats",
 		fyne.NewMenuItem("Reveal All Tiles", edit.revealAllTiles),
 		fyne.NewMenuItem("Unlock All Tech", edit.unlockAllTech),
+		fyne.NewMenuItem("Complete All Tasks", edit.completeAllTasks),
+		fyne.NewMenuItem("Convert All Units", edit.convertAllUnits),
 	)
 }
 
@@ -42,32 +44,48 @@ func (edit *editor) unlockAllTech() {
 		}, win)
 }
 
+func (edit *editor) completeAllTasks() {
+	win := fyne.CurrentApp().Driver().AllWindows()[0]
+	dialog.ShowConfirm(
+		"Complete all tasks?",
+		"Are you sure you want to complete all tasks?",
+		func(ok bool) {
+			if !ok {
+				return
+			}
+
+			edit.CompleteAllTasksForPlayer(DefaultPlayerId)
+		}, win)
+}
+
+func (edit *editor) convertAllUnits() {
+	win := fyne.CurrentApp().Driver().AllWindows()[0]
+	dialog.ShowConfirm(
+		"Convert all units to your tribe?",
+		"Are you sure you want to convert all units? This will change all units to your tribe.",
+		func(ok bool) {
+			if !ok {
+				return
+			}
+
+			edit.ConvertAllUnitsForPlayer(DefaultPlayerId)
+		}, win)
+}
+
 func (edit *editor) RevealAllTilesForPlayer(newTribe int) {
 	for i := 0; i < edit.mapData.MapHeight; i++ {
 		for j := 0; j < edit.mapData.MapWidth; j++ {
-			targetX := j
-			targetY := i
-
 			visibilityData := edit.mapData.TileData[i][j].PlayerVisibility
-			fmt.Println("Existing visibility data:", visibilityData)
 			isAlreadyVisible := false
 			for visibilityIndex := 0; visibilityIndex < len(visibilityData); visibilityIndex++ {
 				if int(visibilityData[visibilityIndex]) == newTribe {
-					fmt.Printf("Tile is already visible to tribe %v. No change will be made to visibility data.\n", newTribe)
 					isAlreadyVisible = true
 					break
 				}
 			}
 			if !isAlreadyVisible {
 				edit.mapData.TileData[i][j].PlayerVisibility = append(edit.mapData.TileData[i][j].PlayerVisibility, newTribe)
-				fmt.Println(fmt.Sprintf("Revealed (%v, %v) for tribe %v", targetX, targetY, newTribe))
 			}
-		}
-	}
-
-	for i := 0; i < edit.mapData.MapHeight; i++ {
-		for j := 0; j < edit.mapData.MapWidth; j++ {
-			fmt.Println(fmt.Sprintf("Tile (%v, %v) visibility: %v", j, i, edit.mapData.TileData[i][j].PlayerVisibility))
 		}
 	}
 }
@@ -124,4 +142,64 @@ func (edit *editor) UnlockAllTechForPlayer(newTribe int) {
 			break
 		}
 	}
+}
+
+func (edit *editor) CompleteAllTasksForPlayer(newTribe int) {
+	allTasksUnlocked := []fileio.PlayerTaskData{
+		fileio.PlayerTaskData{
+			Type:   1, // Pacifist
+			Buffer: []int{1, 1, 5, 0, 0, 0},
+		},
+		fileio.PlayerTaskData{
+			Type:   2, // Genius
+			Buffer: []int{1, 1},
+		},
+		fileio.PlayerTaskData{
+			Type:   3, // Network
+			Buffer: []int{1, 1},
+		},
+		fileio.PlayerTaskData{
+			Type:   4, // Wealth
+			Buffer: []int{1, 1},
+		},
+		fileio.PlayerTaskData{
+			Type:   5, // Killer
+			Buffer: []int{1, 1, 10, 0, 0, 0},
+		},
+		fileio.PlayerTaskData{
+			Type:   6, // Metropolis
+			Buffer: []int{1, 1},
+		},
+		fileio.PlayerTaskData{
+			Type:   8, // Explorer
+			Buffer: []int{1, 1},
+		},
+	}
+
+	for i := 0; i < len(edit.mapData.PlayerData); i++ {
+		if edit.mapData.PlayerData[i].Id == newTribe {
+			edit.mapData.PlayerData[i].Tasks = allTasksUnlocked
+			break
+		}
+	}
+}
+
+func (edit *editor) ConvertAllUnitsForPlayer(newTribe int) {
+	for i := 0; i < int(edit.mapData.MapHeight); i++ {
+		for j := 0; j < int(edit.mapData.MapWidth); j++ {
+			if edit.mapData.TileData[i][j].Unit == nil {
+				continue
+			}
+			tribeOwner := edit.mapData.TileData[i][j].Owner
+			if tribeOwner == newTribe {
+				continue
+			}
+			edit.mapData.TileData[i][j].Unit.Owner = uint8(newTribe)
+			if edit.mapData.TileData[i][j].PassengerUnit != nil {
+				edit.mapData.TileData[i][j].PassengerUnit.Owner = uint8(newTribe)
+			}
+		}
+	}
+
+	edit.refreshMapImage()
 }
