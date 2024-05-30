@@ -72,30 +72,6 @@ func (e *editor) saveMapState() {
 		}, win)
 }
 
-func (e *editor) revealAllTiles() {
-	win := fyne.CurrentApp().Driver().AllWindows()[0]
-	dialog.ShowConfirm("Reveal all tiles?", "Are you sure you want to reveal all tiles?",
-		func(ok bool) {
-			if !ok {
-				return
-			}
-
-			e.RevealAllTilesForPlayer(1) // player 1 is default
-		}, win)
-}
-
-func (edit *editor) unlockAllTech() {
-	win := fyne.CurrentApp().Driver().AllWindows()[0]
-	dialog.ShowConfirm("Unlock all tech?", "Are you sure you want to unlock all tech?",
-		func(ok bool) {
-			if !ok {
-				return
-			}
-
-			edit.UnlockAllTechForPlayer(1) // player 1 is default
-		}, win)
-}
-
 func buildToolbar(e *editor) fyne.CanvasObject {
 	return widget.NewToolbar(
 		&widget.ToolbarAction{Icon: theme.FolderOpenIcon(), OnActivated: e.fileOpen},
@@ -115,11 +91,7 @@ func (e *editor) buildMainMenu() *fyne.MainMenu {
 		fyne.NewMenuItem("Save Image As ...", e.fileSaveAs),
 		fyne.NewMenuItem("Save Map State...", e.saveMapState),
 	)
-	cheatsMenu := fyne.NewMenu("Cheats",
-		fyne.NewMenuItem("Reveal All Tiles", e.revealAllTiles),
-		fyne.NewMenuItem("Unlock All Tech", e.unlockAllTech),
-	)
-
+	cheatsMenu := e.buildCheatsMenu()
 	return fyne.NewMainMenu(file, cheatsMenu)
 }
 
