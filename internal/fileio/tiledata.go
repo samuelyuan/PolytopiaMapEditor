@@ -39,6 +39,7 @@ type TileData struct {
 	PlayerVisibility           []int
 	HasRoad                    bool
 	HasWaterRoute              bool
+	Skin                       int
 	Unknown                    []int
 }
 
@@ -148,7 +149,8 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 	playerVisibilityList := convertByteListToInt(readFixedList(streamReader, int(playerVisibilityListSize)))
 	hasRoad := unsafeReadUint8(streamReader)
 	hasWaterRoute := unsafeReadUint8(streamReader)
-	unknown := convertByteListToInt(readFixedList(streamReader, 4))
+	skin := unsafeReadUint16(streamReader)
+	unknown := convertByteListToInt(readFixedList(streamReader, 2))
 
 	return TileData{
 		WorldCoordinates:           [2]int{int(tileDataHeader.WorldCoordinates[0]), int(tileDataHeader.WorldCoordinates[1])},
@@ -158,6 +160,10 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 		Owner:                      int(tileDataHeader.Owner),
 		Capital:                    int(tileDataHeader.Capital),
 		CapitalCoordinates:         [2]int{int(tileDataHeader.CapitalCoordinates[0]), int(tileDataHeader.CapitalCoordinates[1])},
+		ResourceExists:             resourceExistsFlag != 0,
+		ResourceType:               resourceType,
+		ImprovementExists:          improvementExistsFlag != 0,
+		ImprovementType:            improvementType,
 		ImprovementData:            improvementDataPtr,
 		Unit:                       unitDataPtr,
 		PassengerUnit:              passengerUnitDataPtr,
@@ -168,11 +174,8 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 		PlayerVisibility:           playerVisibilityList,
 		HasRoad:                    hasRoad != 0,
 		HasWaterRoute:              hasWaterRoute != 0,
+		Skin:                       int(skin),
 		Unknown:                    unknown,
-		ResourceExists:             resourceExistsFlag != 0,
-		ResourceType:               resourceType,
-		ImprovementExists:          improvementExistsFlag != 0,
-		ImprovementType:            improvementType,
 	}
 }
 
@@ -250,6 +253,7 @@ func SerializeTileToBytes(tileData TileData) []byte {
 	tileBytes = append(tileBytes, ConvertByteList(tileData.PlayerVisibility)...)
 	tileBytes = append(tileBytes, ConvertBoolToByte(tileData.HasRoad))
 	tileBytes = append(tileBytes, ConvertBoolToByte(tileData.HasWaterRoute))
+	tileBytes = append(tileBytes, ConvertUint16Bytes(tileData.Skin)...)
 	tileBytes = append(tileBytes, ConvertByteList(tileData.Unknown)...)
 	return tileBytes
 }

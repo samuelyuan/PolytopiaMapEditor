@@ -15,8 +15,8 @@ type PlayerData struct {
 	StartTileCoordinates [2]int
 	Tribe                int
 	UnknownByte1         int
-	UnknownInt1          int
-	UnknownArr1          []PlayerUnknownData
+	DifficultyHandicap   int
+	RelationArr          []PlayerRelationData
 	Currency             int
 	Score                int
 	UnknownInt2          int
@@ -28,16 +28,19 @@ type PlayerData struct {
 	TotalUnitsLost       int
 	TotalTribesDestroyed int
 	OverrideColor        []int
-	UnknownByte2         byte
+	OverrideTribe        byte
 	UniqueImprovements   []int
 	DiplomacyArr         []DiplomacyData
 	DiplomacyMessages    []DiplomacyMessage
 	DestroyedByTribe     int
 	DestroyedTurn        int
 	UnknownBuffer2       []int
+	EndScore             int
+	UnknownShort1        int
+	UnknownBuffer3       []int
 }
 
-type PlayerUnknownData struct {
+type PlayerRelationData struct {
 	PlayerId int
 	Unknown1 int
 	Unknown2 int
@@ -75,16 +78,16 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 	startTileCoordinates2 := unsafeReadInt32(streamReader)
 	tribe := unsafeReadUint16(streamReader)
 	unknownByte1 := unsafeReadUint8(streamReader)
-	unknownInt1 := unsafeReadUint32(streamReader)
+	difficultyHandicap := unsafeReadUint32(streamReader)
 
 	playerArr1Key := buildPlayerArr1Key(int(playerId))
 	updateFileOffsetMap(fileOffsetMap, streamReader, playerArr1Key)
 	unknownArrLen1 := unsafeReadUint16(streamReader)
-	unknownArr1 := make([]PlayerUnknownData, 0)
+	relationArr := make([]PlayerRelationData, 0)
 	for i := 0; i < int(unknownArrLen1); i++ {
 		playerIdOther := unsafeReadUint8(streamReader)
 		value2 := readFixedList(streamReader, 4)
-		unknownArr1 = append(unknownArr1, PlayerUnknownData{
+		relationArr = append(relationArr, PlayerRelationData{
 			PlayerId: int(playerIdOther),
 			Unknown1: int(value2[0]),
 			Unknown2: int(value2[1]),
@@ -138,7 +141,7 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 	totalLosses := unsafeReadInt32(streamReader)
 	totalTribesDestroyed := unsafeReadInt32(streamReader)
 	overrideColor := convertByteListToInt(readFixedList(streamReader, 4))
-	unknownByte2 := unsafeReadUint8(streamReader)
+	overrideTribe := unsafeReadUint8(streamReader)
 
 	playerUniqueImprovementsSize := unsafeReadUint16(streamReader)
 	playerUniqueImprovements := make([]int, int(playerUniqueImprovementsSize))
@@ -171,7 +174,10 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 
 	destroyedByTribe := unsafeReadUint8(streamReader)
 	destroyedTurn := unsafeReadUint32(streamReader)
-	unknownBuffer2 := convertByteListToInt(readFixedList(streamReader, 14))
+	unknownBuffer2 := convertByteListToInt(readFixedList(streamReader, 4))
+	endScore := unsafeReadInt32(streamReader)
+	unknownShort1 := unsafeReadUint16(streamReader)
+	unknownBuffer3 := convertByteListToInt(readFixedList(streamReader, 4))
 
 	return PlayerData{
 		Id:                   int(playerId),
@@ -181,8 +187,8 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 		StartTileCoordinates: [2]int{int(startTileCoordinates1), int(startTileCoordinates2)},
 		Tribe:                int(tribe),
 		UnknownByte1:         int(unknownByte1),
-		UnknownInt1:          int(unknownInt1),
-		UnknownArr1:          unknownArr1,
+		DifficultyHandicap:   int(difficultyHandicap),
+		RelationArr:          relationArr,
 		Currency:             int(currency),
 		Score:                int(score),
 		UnknownInt2:          int(unknownInt2),
@@ -194,13 +200,16 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 		TotalUnitsLost:       int(totalLosses),
 		TotalTribesDestroyed: int(totalTribesDestroyed),
 		OverrideColor:        overrideColor,
-		UnknownByte2:         unknownByte2,
+		OverrideTribe:        overrideTribe,
 		UniqueImprovements:   playerUniqueImprovements,
 		DiplomacyArr:         diplomacyArr,
 		DiplomacyMessages:    diplomacyMessagesArr,
 		DestroyedByTribe:     int(destroyedByTribe),
 		DestroyedTurn:        int(destroyedTurn),
 		UnknownBuffer2:       unknownBuffer2,
+		EndScore:             int(endScore),
+		UnknownShort1:        int(unknownShort1),
+		UnknownBuffer3:       unknownBuffer3,
 	}
 }
 
@@ -215,12 +224,12 @@ func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.StartTileCoordinates[1])...)
 	allPlayerData = append(allPlayerData, ConvertUint16Bytes(playerData.Tribe)...)
 	allPlayerData = append(allPlayerData, byte(playerData.UnknownByte1))
-	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.UnknownInt1)...)
+	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.DifficultyHandicap)...)
 
-	allPlayerData = append(allPlayerData, ConvertUint16Bytes(len(playerData.UnknownArr1))...)
-	for i := 0; i < len(playerData.UnknownArr1); i++ {
-		allPlayerData = append(allPlayerData, byte(playerData.UnknownArr1[i].PlayerId), byte(playerData.UnknownArr1[i].Unknown1),
-			byte(playerData.UnknownArr1[i].Unknown2), byte(playerData.UnknownArr1[i].Unknown3), byte(playerData.UnknownArr1[i].Unknown4))
+	allPlayerData = append(allPlayerData, ConvertUint16Bytes(len(playerData.RelationArr))...)
+	for i := 0; i < len(playerData.RelationArr); i++ {
+		allPlayerData = append(allPlayerData, byte(playerData.RelationArr[i].PlayerId), byte(playerData.RelationArr[i].Unknown1),
+			byte(playerData.RelationArr[i].Unknown2), byte(playerData.RelationArr[i].Unknown3), byte(playerData.RelationArr[i].Unknown4))
 	}
 
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.Currency)...)
@@ -249,7 +258,7 @@ func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.TotalTribesDestroyed)...)
 	allPlayerData = append(allPlayerData, ConvertByteList(playerData.OverrideColor)...)
 
-	allPlayerData = append(allPlayerData, playerData.UnknownByte2)
+	allPlayerData = append(allPlayerData, playerData.OverrideTribe)
 
 	allPlayerData = append(allPlayerData, ConvertUint16Bytes(len(playerData.UniqueImprovements))...)
 	for i := 0; i < len(playerData.UniqueImprovements); i++ {
@@ -270,6 +279,9 @@ func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData = append(allPlayerData, byte(playerData.DestroyedByTribe))
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.DestroyedTurn)...)
 	allPlayerData = append(allPlayerData, ConvertByteList(playerData.UnknownBuffer2)...)
+	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.EndScore)...)
+	allPlayerData = append(allPlayerData, ConvertUint16Bytes(playerData.UnknownShort1)...)
+	allPlayerData = append(allPlayerData, ConvertByteList(playerData.UnknownBuffer3)...)
 
 	return allPlayerData
 }
@@ -294,13 +306,13 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 
 	// unknown array
 	newArraySize := index + 1
-	unknownArr1 := make([]PlayerUnknownData, 0)
+	relationArr := make([]PlayerRelationData, 0)
 	for i := 1; i <= int(newArraySize); i++ {
 		playerId := i
 		if i == newArraySize {
 			playerId = 255
 		}
-		unknownArr1 = append(unknownArr1, PlayerUnknownData{
+		relationArr = append(relationArr, PlayerRelationData{
 			PlayerId: playerId,
 			Unknown1: 0,
 			Unknown2: 0,
@@ -317,8 +329,8 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 		StartTileCoordinates: [2]int{0, 0},
 		Tribe:                2, // Ai-mo
 		UnknownByte1:         1,
-		UnknownInt1:          2,
-		UnknownArr1:          unknownArr1,
+		DifficultyHandicap:   2,
+		RelationArr:          relationArr,
 		Currency:             5,
 		Score:                0,
 		UnknownInt2:          0,
@@ -330,13 +342,16 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 		TotalUnitsLost:       0,
 		TotalTribesDestroyed: 0,
 		OverrideColor:        []int{int(overrideColor.B), int(overrideColor.G), int(overrideColor.R), 0},
-		UnknownByte2:         0,
+		OverrideTribe:        0,
 		UniqueImprovements:   []int{},
 		DiplomacyArr:         []DiplomacyData{},
 		DiplomacyMessages:    []DiplomacyMessage{},
 		DestroyedByTribe:     0,
 		DestroyedTurn:        0,
-		UnknownBuffer2:       []int{255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 255, 255, 255, 255},
+		UnknownBuffer2:       []int{255, 255, 255, 255},
+		EndScore:             -1,
+		UnknownShort1:        0,
+		UnknownBuffer3:       []int{255, 255, 255, 255},
 	}
 
 	return playerData

@@ -17,8 +17,8 @@ var (
 		StartTileCoordinates: [2]int{6, 22},
 		Tribe:                15,
 		UnknownByte1:         1,
-		UnknownInt1:          1,
-		UnknownArr1: []PlayerUnknownData{
+		DifficultyHandicap:   1,
+		RelationArr: []PlayerRelationData{
 			{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
 			{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
 			{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
@@ -53,7 +53,7 @@ var (
 		TotalUnitsLost:       32,
 		TotalTribesDestroyed: 1,
 		OverrideColor:        []int{153, 0, 255, 255},
-		UnknownByte2:         0,
+		OverrideTribe:        0,
 		UniqueImprovements:   []int{27},
 		DiplomacyArr: []DiplomacyData{
 			{PlayerId: 1, DiplomacyRelationState: 0, LastAttackTurn: -100, EmbassyLevel: 0, LastPeaceBrokenTurn: -100, FirstMeet: -100, EmbassyBuildTurn: -100, PreviousAttackTurn: -100},
@@ -78,7 +78,10 @@ var (
 		DiplomacyMessages: []DiplomacyMessage{},
 		DestroyedByTribe:  0,
 		DestroyedTurn:     0,
-		UnknownBuffer2:    []int{255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 255, 255, 255, 255},
+		UnknownBuffer2:    []int{255, 255, 255, 255},
+		EndScore:          -1,
+		UnknownShort1:     0,
+		UnknownBuffer3:    []int{255, 255, 255, 255},
 	}
 
 	playerBytes = []byte{1,

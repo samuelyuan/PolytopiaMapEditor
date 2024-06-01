@@ -352,6 +352,12 @@ func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int,
 	}
 
 	tileProperties.hasRoadCheckbox.SetChecked(tile.HasRoad)
+	// Road shouldn't be allowed for water or mountains or cities
+	if tile.Terrain == 1 || tile.Terrain == 2 || tile.Terrain == 4 || (tile.ImprovementData != nil && tile.ImprovementType == 1) {
+		tileProperties.hasRoadCheckbox.Disable()
+	} else {
+		tileProperties.hasRoadCheckbox.Enable()
+	}
 
 	if tile.ImprovementData != nil && tile.ImprovementType == 1 {
 		tileProperties.cityNameEntry.SetText(tile.ImprovementData.CityName)

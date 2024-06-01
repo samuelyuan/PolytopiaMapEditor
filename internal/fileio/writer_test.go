@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestBuildNewPlayerUnknownArr(t *testing.T) {
-	oldArr := []PlayerUnknownData{
+func TestBuildNewPlayerRelationArr(t *testing.T) {
+	oldArr := []PlayerRelationData{
 		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
@@ -26,8 +26,8 @@ func TestBuildNewPlayerUnknownArr(t *testing.T) {
 		{PlayerId: 16, Unknown1: 41, Unknown2: 125, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 255, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
 	}
-	resultBytesNoChange := BuildNewPlayerUnknownArr(oldArr, 16)
-	expectedBytesNoChange := []PlayerUnknownData{
+	resultBytesNoChange := BuildNewPlayerRelationArr(oldArr, 16)
+	expectedBytesNoChange := []PlayerRelationData{
 		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
@@ -50,8 +50,8 @@ func TestBuildNewPlayerUnknownArr(t *testing.T) {
 		t.Fatalf(`No change failed. Result = %v, expected = %v`, resultBytesNoChange, expectedBytesNoChange)
 	}
 
-	resultBytesWithChange := BuildNewPlayerUnknownArr(oldArr, 17)
-	expectedBytesWithChange := []PlayerUnknownData{
+	resultBytesWithChange := BuildNewPlayerRelationArr(oldArr, 17)
+	expectedBytesWithChange := []PlayerRelationData{
 		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
 		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},

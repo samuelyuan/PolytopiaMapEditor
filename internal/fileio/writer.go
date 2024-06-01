@@ -184,6 +184,11 @@ func WritePlayersToFile(inputFilename string, playersList []PlayerData) {
 	WriteAndShiftData(inputFilename, buildAllPlayersStartKey(), buildAllPlayersEndKey(), allPlayerBytes)
 }
 
+func WriteMapHeaderToFile(inputFilename string, mapHeader MapHeaderOutput) {
+	mapHeaderBytes := SerializeMapHeaderToBytes(mapHeader)
+	WriteAndShiftData(inputFilename, buildMapHeaderStartKey(), buildMapHeaderEndKey(), mapHeaderBytes)
+}
+
 func ModifyTileTerrain(inputFilename string, targetX int, targetY int, updatedValue int) {
 	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
@@ -545,21 +550,21 @@ func generateRandomColor() color.RGBA {
 	return color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)), uint8(rand.Intn(255)), 255}
 }
 
-func BuildNewPlayerUnknownArr(oldUnknownArr1 []PlayerUnknownData, newPlayerId int) []PlayerUnknownData {
-	existingLen := len(oldUnknownArr1)
+func BuildNewPlayerRelationArr(oldRelationArr []PlayerRelationData, newPlayerId int) []PlayerRelationData {
+	existingLen := len(oldRelationArr)
 
 	oldPlayerCount := existingLen
 	oldMaximumPlayerId := oldPlayerCount - 1 // excludes player 255 nature
 	if oldMaximumPlayerId >= newPlayerId {
 		fmt.Println(fmt.Sprintf("Existing player count is %v, which includes players 1 to %v. No need to add player id %v.",
 			oldPlayerCount, oldPlayerCount-1, newPlayerId))
-		return oldUnknownArr1
+		return oldRelationArr
 	} else {
 		fmt.Println(fmt.Sprintf("Existing player count is %v, which includes players 1 to %v. New player id %v needs to be included.",
 			oldPlayerCount, oldPlayerCount-1, newPlayerId))
 	}
 
-	dataInsert := PlayerUnknownData{
+	dataInsert := PlayerRelationData{
 		PlayerId: newPlayerId,
 		Unknown1: 0,
 		Unknown2: 0,
@@ -567,11 +572,11 @@ func BuildNewPlayerUnknownArr(oldUnknownArr1 []PlayerUnknownData, newPlayerId in
 		Unknown4: 0,
 	}
 	// assumes player 255 is always last
-	existingPlayers := oldUnknownArr1[0 : existingLen-1]
-	naturePlayer := oldUnknownArr1[existingLen-1]
+	existingPlayers := oldRelationArr[0 : existingLen-1]
+	naturePlayer := oldRelationArr[existingLen-1]
 
-	newUnknownArr1 := append(existingPlayers, dataInsert, naturePlayer)
-	return newUnknownArr1
+	newRelationArr := append(existingPlayers, dataInsert, naturePlayer)
+	return newRelationArr
 }
 
 func convertPlayerIndexToId(playerIndex int, totalPlayers int) int {
@@ -582,7 +587,7 @@ func convertPlayerIndexToId(playerIndex int, totalPlayers int) int {
 	}
 }
 
-func ModifyAllExistingPlayerUnknownArr(inputFilename string) {
+func ModifyAllExistingPlayerRelationArr(inputFilename string) {
 	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
@@ -592,8 +597,8 @@ func ModifyAllExistingPlayerUnknownArr(inputFilename string) {
 
 	for i := len(saveOutput.PlayerData) - 1; i >= 0; i-- {
 		newPlayerId := newPlayerCount - 1
-		newUnknownArr1 := BuildNewPlayerUnknownArr(saveOutput.PlayerData[i].UnknownArr1, newPlayerId)
-		saveOutput.PlayerData[i].UnknownArr1 = newUnknownArr1
+		newRelationArr := BuildNewPlayerRelationArr(saveOutput.PlayerData[i].RelationArr, newPlayerId)
+		saveOutput.PlayerData[i].RelationArr = newRelationArr
 	}
 	WritePlayersToFile(inputFilename, saveOutput.PlayerData)
 }
@@ -620,7 +625,7 @@ func AddPlayer(inputFilename string) {
 	newPlayerData = append(newPlayerData, saveOutput.PlayerData[len(saveOutput.PlayerData)-1])
 	WritePlayersToFile(inputFilename, newPlayerData)
 
-	ModifyAllExistingPlayerUnknownArr(inputFilename)
+	ModifyAllExistingPlayerRelationArr(inputFilename)
 }
 
 func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {

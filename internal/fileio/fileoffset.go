@@ -30,6 +30,14 @@ func buildAllPlayersEndKey() string {
 	return "AllPlayersEnd"
 }
 
+func buildMapHeaderStartKey() string {
+	return "MapHeaderStart"
+}
+
+func buildMapHeaderEndKey() string {
+	return "MapHeaderEnd"
+}
+
 func buildPlayerStartKey(index int) string {
 	return fmt.Sprintf("PlayerStart%v", index)
 }

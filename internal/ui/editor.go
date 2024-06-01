@@ -189,13 +189,14 @@ func (e *editor) Reload() {
 	e.LoadFile(read)
 }
 
-func (e *editor) WriteMapState() {
-	originalFilname := e.uri[7:]
+func (edit *editor) WriteMapState() {
+	originalFilname := edit.uri[7:]
 	decompressedFilename := originalFilname + ".decomp"
 	outputFilename := originalFilname
 
-	fileio.WriteMapToFile(decompressedFilename, e.mapData.TileData)
-	fileio.WritePlayersToFile(decompressedFilename, e.mapData.PlayerData)
+	fileio.WriteMapToFile(decompressedFilename, edit.mapData.TileData)
+	fileio.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData)
+	fileio.WriteMapHeaderToFile(decompressedFilename, edit.mapData.MapHeaderOutput)
 	fmt.Println("Exporting map to", outputFilename)
 	fileio.CompressFile(decompressedFilename, outputFilename)
 }

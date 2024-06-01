@@ -146,31 +146,31 @@ func (edit *editor) UnlockAllTechForPlayer(newTribe int) {
 
 func (edit *editor) CompleteAllTasksForPlayer(newTribe int) {
 	allTasksUnlocked := []fileio.PlayerTaskData{
-		fileio.PlayerTaskData{
+		{
 			Type:   1, // Pacifist
 			Buffer: []int{1, 1, 5, 0, 0, 0},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   2, // Genius
 			Buffer: []int{1, 1},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   3, // Network
 			Buffer: []int{1, 1},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   4, // Wealth
 			Buffer: []int{1, 1},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   5, // Killer
 			Buffer: []int{1, 1, 10, 0, 0, 0},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   6, // Metropolis
 			Buffer: []int{1, 1},
 		},
-		fileio.PlayerTaskData{
+		{
 			Type:   8, // Explorer
 			Buffer: []int{1, 1},
 		},

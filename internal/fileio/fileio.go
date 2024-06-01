@@ -193,7 +193,9 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	fileOffsetMap = make(map[string]int)
 
 	// Read initial map state
+	updateFileOffsetMap(fileOffsetMap, streamReader, buildMapHeaderStartKey())
 	initialMapHeaderOutput := DeserializeMapHeaderFromBytes(streamReader)
+	updateFileOffsetMap(fileOffsetMap, streamReader, buildMapHeaderEndKey())
 
 	initialTileData := make([][]TileData, initialMapHeaderOutput.MapHeight)
 	for i := 0; i < initialMapHeaderOutput.MapHeight; i++ {
@@ -205,7 +207,9 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	_ = readFixedList(streamReader, 3)
 
 	// Read current map state
+	updateFileOffsetMap(fileOffsetMap, streamReader, buildMapHeaderStartKey())
 	currentMapHeaderOutput := DeserializeMapHeaderFromBytes(streamReader)
+	updateFileOffsetMap(fileOffsetMap, streamReader, buildMapHeaderEndKey())
 
 	tileData := make([][]TileData, currentMapHeaderOutput.MapHeight)
 	for i := 0; i < currentMapHeaderOutput.MapHeight; i++ {

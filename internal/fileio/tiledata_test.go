@@ -41,7 +41,8 @@ func TestDeserializeEmptyTileDataFromBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Unknown:                    []int{0, 0, 0, 0},
+		Skin:                       0,
+		Unknown:                    []int{0, 0},
 	}
 
 	if !reflect.DeepEqual(result, expected) {
@@ -72,7 +73,8 @@ func TestSerializeEmptyTileDataToBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Unknown:                    []int{0, 0, 0, 0},
+		Skin:                       0,
+		Unknown:                    []int{0, 0},
 	}
 	resultBytes := SerializeTileToBytes(tileData)
 	expectedBytes := []byte{3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 8, 0, 1, 0, 0, 0,
@@ -118,13 +120,16 @@ func TestSerializeTileDataWithImprovementToBytes(t *testing.T) {
 			RebellionFlag:          0,
 			RebellionBuffer:        []int{},
 		},
-		Unit:              nil,
-		UnitEffectData:    []int{},
-		UnitDirectionData: []int{},
-		PlayerVisibility:  []int{},
-		HasRoad:           false,
-		HasWaterRoute:     false,
-		Unknown:           []int{0, 0, 0, 0},
+		Unit:                       nil,
+		UnitEffectData:             []int{},
+		UnitDirectionData:          []int{},
+		PassengerUnitEffectData:    []int{},
+		PassengerUnitDirectionData: []int{},
+		PlayerVisibility:           []int{},
+		HasRoad:                    false,
+		HasWaterRoute:              false,
+		Skin:                       0,
+		Unknown:                    []int{0, 0},
 	}
 
 	resultBytes := SerializeTileToBytes(tileData)
@@ -171,12 +176,15 @@ func TestSerializeTileDataWithUnitToBytes(t *testing.T) {
 			Flipped:            false,
 			CreatedTurn:        0,
 		},
-		UnitEffectData:    []int{1},
-		UnitDirectionData: []int{255, 255, 1, 0, 0},
-		PlayerVisibility:  []int{},
-		HasRoad:           false,
-		HasWaterRoute:     false,
-		Unknown:           []int{0, 0, 0, 0},
+		UnitEffectData:             []int{1},
+		UnitDirectionData:          []int{255, 255, 1, 0, 0},
+		PassengerUnitEffectData:    []int{},
+		PassengerUnitDirectionData: []int{},
+		PlayerVisibility:           []int{},
+		HasRoad:                    false,
+		HasWaterRoute:              false,
+		Skin:                       0,
+		Unknown:                    []int{0, 0},
 	}
 
 	resultBytes := SerializeTileToBytes(tileData)
