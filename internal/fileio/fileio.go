@@ -92,6 +92,14 @@ func unsafeReadUint8(reader *io.SectionReader) uint8 {
 	return unsignedIntValue
 }
 
+func unsafeReadFloat32(reader *io.SectionReader) float32 {
+	floatValue := float32(0)
+	if err := binary.Read(reader, binary.LittleEndian, &floatValue); err != nil {
+		log.Fatal("Failed to load float32: ", err)
+	}
+	return floatValue
+}
+
 func readFixedList(streamReader *io.SectionReader, listSize int) []byte {
 	buffer := make([]byte, listSize)
 	if err := binary.Read(streamReader, binary.LittleEndian, &buffer); err != nil {

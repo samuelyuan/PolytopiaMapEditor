@@ -137,7 +137,7 @@ func (edit *editor) UnlockAllTechForPlayer(newTribe int) {
 		43, // Cymanti only, Pescetism
 	}
 	for i := 0; i < len(edit.mapData.PlayerData); i++ {
-		if edit.mapData.PlayerData[i].Id == newTribe {
+		if edit.mapData.PlayerData[i].PlayerId == newTribe {
 			edit.mapData.PlayerData[i].AvailableTech = allTech
 			break
 		}
@@ -177,7 +177,7 @@ func (edit *editor) CompleteAllTasksForPlayer(newTribe int) {
 	}
 
 	for i := 0; i < len(edit.mapData.PlayerData); i++ {
-		if edit.mapData.PlayerData[i].Id == newTribe {
+		if edit.mapData.PlayerData[i].PlayerId == newTribe {
 			edit.mapData.PlayerData[i].Tasks = allTasksUnlocked
 			break
 		}

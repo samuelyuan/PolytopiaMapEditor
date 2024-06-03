@@ -39,7 +39,7 @@ type TileData struct {
 	PlayerVisibility           []int
 	HasRoad                    bool
 	HasWaterRoute              bool
-	Skin                       int
+	TileSkin                   int
 	Unknown                    []int
 }
 
@@ -149,7 +149,7 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 	playerVisibilityList := convertByteListToInt(readFixedList(streamReader, int(playerVisibilityListSize)))
 	hasRoad := unsafeReadUint8(streamReader)
 	hasWaterRoute := unsafeReadUint8(streamReader)
-	skin := unsafeReadUint16(streamReader)
+	tileSkin := unsafeReadUint16(streamReader)
 	unknown := convertByteListToInt(readFixedList(streamReader, 2))
 
 	return TileData{
@@ -174,7 +174,7 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 		PlayerVisibility:           playerVisibilityList,
 		HasRoad:                    hasRoad != 0,
 		HasWaterRoute:              hasWaterRoute != 0,
-		Skin:                       int(skin),
+		TileSkin:                   int(tileSkin),
 		Unknown:                    unknown,
 	}
 }
@@ -253,7 +253,7 @@ func SerializeTileToBytes(tileData TileData) []byte {
 	tileBytes = append(tileBytes, ConvertByteList(tileData.PlayerVisibility)...)
 	tileBytes = append(tileBytes, ConvertBoolToByte(tileData.HasRoad))
 	tileBytes = append(tileBytes, ConvertBoolToByte(tileData.HasWaterRoute))
-	tileBytes = append(tileBytes, ConvertUint16Bytes(tileData.Skin)...)
+	tileBytes = append(tileBytes, ConvertUint16Bytes(tileData.TileSkin)...)
 	tileBytes = append(tileBytes, ConvertByteList(tileData.Unknown)...)
 	return tileBytes
 }

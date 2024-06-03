@@ -41,7 +41,7 @@ func TestDeserializeEmptyTileDataFromBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Skin:                       0,
+		TileSkin:                   0,
 		Unknown:                    []int{0, 0},
 	}
 
@@ -73,7 +73,7 @@ func TestSerializeEmptyTileDataToBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Skin:                       0,
+		TileSkin:                   0,
 		Unknown:                    []int{0, 0},
 	}
 	resultBytes := SerializeTileToBytes(tileData)
@@ -128,7 +128,7 @@ func TestSerializeTileDataWithImprovementToBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Skin:                       0,
+		TileSkin:                   0,
 		Unknown:                    []int{0, 0},
 	}
 
@@ -183,7 +183,7 @@ func TestSerializeTileDataWithUnitToBytes(t *testing.T) {
 		PlayerVisibility:           []int{},
 		HasRoad:                    false,
 		HasWaterRoute:              false,
-		Skin:                       0,
+		TileSkin:                   0,
 		Unknown:                    []int{0, 0},
 	}
 

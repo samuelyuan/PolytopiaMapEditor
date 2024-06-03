@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"time"
@@ -116,6 +117,12 @@ func ConvertUint32Bytes(value int) []byte {
 func ConvertUint16Bytes(value int) []byte {
 	byteArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(byteArr, uint16(value))
+	return byteArr
+}
+
+func ConvertFloat32Bytes(value float32) []byte {
+	byteArr := make([]byte, 4)
+	binary.LittleEndian.PutUint32(byteArr, math.Float32bits(value))
 	return byteArr
 }
 
@@ -550,7 +557,7 @@ func generateRandomColor() color.RGBA {
 	return color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)), uint8(rand.Intn(255)), 255}
 }
 
-func BuildNewPlayerRelationArr(oldRelationArr []PlayerRelationData, newPlayerId int) []PlayerRelationData {
+func BuildNewPlayerUnknownArr(oldRelationArr []PlayerAggression, newPlayerId int) []PlayerAggression {
 	existingLen := len(oldRelationArr)
 
 	oldPlayerCount := existingLen
@@ -564,12 +571,9 @@ func BuildNewPlayerRelationArr(oldRelationArr []PlayerRelationData, newPlayerId 
 			oldPlayerCount, oldPlayerCount-1, newPlayerId))
 	}
 
-	dataInsert := PlayerRelationData{
-		PlayerId: newPlayerId,
-		Unknown1: 0,
-		Unknown2: 0,
-		Unknown3: 0,
-		Unknown4: 0,
+	dataInsert := PlayerAggression{
+		PlayerId:   newPlayerId,
+		Aggression: 0,
 	}
 	// assumes player 255 is always last
 	existingPlayers := oldRelationArr[0 : existingLen-1]
@@ -587,7 +591,7 @@ func convertPlayerIndexToId(playerIndex int, totalPlayers int) int {
 	}
 }
 
-func ModifyAllExistingPlayerRelationArr(inputFilename string) {
+func ModifyAllExistingPlayerUnknownArr(inputFilename string) {
 	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
@@ -597,8 +601,8 @@ func ModifyAllExistingPlayerRelationArr(inputFilename string) {
 
 	for i := len(saveOutput.PlayerData) - 1; i >= 0; i-- {
 		newPlayerId := newPlayerCount - 1
-		newRelationArr := BuildNewPlayerRelationArr(saveOutput.PlayerData[i].RelationArr, newPlayerId)
-		saveOutput.PlayerData[i].RelationArr = newRelationArr
+		newRelationArr := BuildNewPlayerUnknownArr(saveOutput.PlayerData[i].AggressionsByPlayers, newPlayerId)
+		saveOutput.PlayerData[i].AggressionsByPlayers = newRelationArr
 	}
 	WritePlayersToFile(inputFilename, saveOutput.PlayerData)
 }
@@ -625,7 +629,7 @@ func AddPlayer(inputFilename string) {
 	newPlayerData = append(newPlayerData, saveOutput.PlayerData[len(saveOutput.PlayerData)-1])
 	WritePlayersToFile(inputFilename, newPlayerData)
 
-	ModifyAllExistingPlayerRelationArr(inputFilename)
+	ModifyAllExistingPlayerUnknownArr(inputFilename)
 }
 
 func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
@@ -717,12 +721,12 @@ func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
 	player1StartTile := [2]int{0, 0}
 	player2StartTile := [2]int{0, 0}
 	for i := 0; i < len(saveOutput.PlayerData); i++ {
-		if saveOutput.PlayerData[i].Id == playerId1 {
+		if saveOutput.PlayerData[i].PlayerId == playerId1 {
 			player1Tribe = saveOutput.PlayerData[i].Tribe
 			copy(player1Color, saveOutput.PlayerData[i].OverrideColor)
 			player1StartTile[0] = saveOutput.PlayerData[i].StartTileCoordinates[0]
 			player1StartTile[1] = saveOutput.PlayerData[i].StartTileCoordinates[1]
-		} else if saveOutput.PlayerData[i].Id == playerId2 {
+		} else if saveOutput.PlayerData[i].PlayerId == playerId2 {
 			player2Tribe = saveOutput.PlayerData[i].Tribe
 			copy(player2Color, saveOutput.PlayerData[i].OverrideColor)
 			player2StartTile[0] = saveOutput.PlayerData[i].StartTileCoordinates[0]
@@ -731,12 +735,12 @@ func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
 	}
 
 	for i := 0; i < len(saveOutput.PlayerData); i++ {
-		if saveOutput.PlayerData[i].Id == playerId1 {
+		if saveOutput.PlayerData[i].PlayerId == playerId1 {
 			saveOutput.PlayerData[i].Tribe = player2Tribe
 			saveOutput.PlayerData[i].OverrideColor = player2Color
 			saveOutput.PlayerData[i].StartTileCoordinates[0] = player2StartTile[0]
 			saveOutput.PlayerData[i].StartTileCoordinates[1] = player2StartTile[1]
-		} else if saveOutput.PlayerData[i].Id == playerId2 {
+		} else if saveOutput.PlayerData[i].PlayerId == playerId2 {
 			saveOutput.PlayerData[i].Tribe = player1Tribe
 			saveOutput.PlayerData[i].OverrideColor = player1Color
 			saveOutput.PlayerData[i].StartTileCoordinates[0] = player1StartTile[0]
@@ -809,12 +813,12 @@ func SetTileCapital(inputFilename string, targetX int, targetY int, newCityName 
 	WriteMapToFile(inputFilename, saveOutput.TileData)
 
 	for i := 0; i < len(saveOutput.PlayerData); i++ {
-		if saveOutput.PlayerData[i].Id == updatedTribe {
+		if saveOutput.PlayerData[i].PlayerId == updatedTribe {
 			saveOutput.PlayerData[i].StartTileCoordinates[0] = capitalTile.WorldCoordinates[0]
 			saveOutput.PlayerData[i].StartTileCoordinates[1] = capitalTile.WorldCoordinates[1]
 			WritePlayersToFile(inputFilename, saveOutput.PlayerData)
 			fmt.Printf("Set player id %v start coordinates to (%v, %v)\n",
-				saveOutput.PlayerData[i].Id, saveOutput.PlayerData[i].StartTileCoordinates[0], saveOutput.PlayerData[i].StartTileCoordinates[1])
+				saveOutput.PlayerData[i].PlayerId, saveOutput.PlayerData[i].StartTileCoordinates[0], saveOutput.PlayerData[i].StartTileCoordinates[1])
 			break
 		}
 	}

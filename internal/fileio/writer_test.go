@@ -6,71 +6,58 @@ import (
 	"testing"
 )
 
-func TestBuildNewPlayerRelationArr(t *testing.T) {
-	oldArr := []PlayerRelationData{
-		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 4, Unknown1: 39, Unknown2: 95, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 5, Unknown1: 222, Unknown2: 34, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 6, Unknown1: 218, Unknown2: 77, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 7, Unknown1: 134, Unknown2: 250, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 8, Unknown1: 243, Unknown2: 153, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 9, Unknown1: 131, Unknown2: 143, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 10, Unknown1: 180, Unknown2: 147, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 11, Unknown1: 74, Unknown2: 89, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 12, Unknown1: 7, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 13, Unknown1: 74, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 14, Unknown1: 66, Unknown2: 163, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 15, Unknown1: 165, Unknown2: 216, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 16, Unknown1: 41, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 255, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
+var (
+	oldPlayerRelationData = []PlayerAggression{
+		{PlayerId: 1, Aggression: 0},
+		{PlayerId: 2, Aggression: 17744},
+		{PlayerId: 3, Aggression: 73048},
+		{PlayerId: 4, Aggression: 24359},
+		{PlayerId: 5, Aggression: 74462},
+		{PlayerId: 6, Aggression: 85466},
+		{PlayerId: 7, Aggression: 64134},
+		{PlayerId: 8, Aggression: 39411},
+		{PlayerId: 9, Aggression: 36739},
+		{PlayerId: 10, Aggression: 37812},
+		{PlayerId: 11, Aggression: 22858},
+		{PlayerId: 12, Aggression: 32007},
+		{PlayerId: 13, Aggression: 17738},
+		{PlayerId: 14, Aggression: 41794},
+		{PlayerId: 15, Aggression: 55461},
+		{PlayerId: 16, Aggression: 32041},
+		{PlayerId: 255, Aggression: 0},
 	}
-	resultBytesNoChange := BuildNewPlayerRelationArr(oldArr, 16)
-	expectedBytesNoChange := []PlayerRelationData{
-		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 4, Unknown1: 39, Unknown2: 95, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 5, Unknown1: 222, Unknown2: 34, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 6, Unknown1: 218, Unknown2: 77, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 7, Unknown1: 134, Unknown2: 250, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 8, Unknown1: 243, Unknown2: 153, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 9, Unknown1: 131, Unknown2: 143, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 10, Unknown1: 180, Unknown2: 147, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 11, Unknown1: 74, Unknown2: 89, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 12, Unknown1: 7, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 13, Unknown1: 74, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 14, Unknown1: 66, Unknown2: 163, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 15, Unknown1: 165, Unknown2: 216, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 16, Unknown1: 41, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 255, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
+	newPlayerRelationData = []PlayerAggression{
+		{PlayerId: 1, Aggression: 0},
+		{PlayerId: 2, Aggression: 17744},
+		{PlayerId: 3, Aggression: 73048},
+		{PlayerId: 4, Aggression: 24359},
+		{PlayerId: 5, Aggression: 74462},
+		{PlayerId: 6, Aggression: 85466},
+		{PlayerId: 7, Aggression: 64134},
+		{PlayerId: 8, Aggression: 39411},
+		{PlayerId: 9, Aggression: 36739},
+		{PlayerId: 10, Aggression: 37812},
+		{PlayerId: 11, Aggression: 22858},
+		{PlayerId: 12, Aggression: 32007},
+		{PlayerId: 13, Aggression: 17738},
+		{PlayerId: 14, Aggression: 41794},
+		{PlayerId: 15, Aggression: 55461},
+		{PlayerId: 16, Aggression: 32041},
+		{PlayerId: 17, Aggression: 0}, // new line for player id 17
+		{PlayerId: 255, Aggression: 0},
 	}
+)
+
+func TestBuildNewPlayerUnknownArr(t *testing.T) {
+	oldArr := oldPlayerRelationData
+	resultBytesNoChange := BuildNewPlayerUnknownArr(oldArr, 16)
+	expectedBytesNoChange := oldPlayerRelationData
 	if !reflect.DeepEqual(resultBytesNoChange, expectedBytesNoChange) {
 		t.Fatalf(`No change failed. Result = %v, expected = %v`, resultBytesNoChange, expectedBytesNoChange)
 	}
 
-	resultBytesWithChange := BuildNewPlayerRelationArr(oldArr, 17)
-	expectedBytesWithChange := []PlayerRelationData{
-		{PlayerId: 1, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 2, Unknown1: 80, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 3, Unknown1: 88, Unknown2: 29, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 4, Unknown1: 39, Unknown2: 95, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 5, Unknown1: 222, Unknown2: 34, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 6, Unknown1: 218, Unknown2: 77, Unknown3: 1, Unknown4: 0},
-		{PlayerId: 7, Unknown1: 134, Unknown2: 250, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 8, Unknown1: 243, Unknown2: 153, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 9, Unknown1: 131, Unknown2: 143, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 10, Unknown1: 180, Unknown2: 147, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 11, Unknown1: 74, Unknown2: 89, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 12, Unknown1: 7, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 13, Unknown1: 74, Unknown2: 69, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 14, Unknown1: 66, Unknown2: 163, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 15, Unknown1: 165, Unknown2: 216, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 16, Unknown1: 41, Unknown2: 125, Unknown3: 0, Unknown4: 0},
-		{PlayerId: 17, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0}, // new line for player id 17
-		{PlayerId: 255, Unknown1: 0, Unknown2: 0, Unknown3: 0, Unknown4: 0},
-	}
+	resultBytesWithChange := BuildNewPlayerUnknownArr(oldArr, 17)
+	expectedBytesWithChange := newPlayerRelationData
 	if !reflect.DeepEqual(resultBytesWithChange, expectedBytesWithChange) {
 		t.Fatalf(`Change to include player 17 failed. Result = %v, expected = %v`, resultBytesWithChange, expectedBytesWithChange)
 	}

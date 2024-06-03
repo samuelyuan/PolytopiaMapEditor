@@ -171,10 +171,10 @@ func createTileOwnerSelect(edit *editor) *widget.Select {
 	if edit.mapData != nil {
 		for i := 0; i < len(edit.mapData.PlayerData); i++ {
 			playerData := edit.mapData.PlayerData[i]
-			if playerData.Id == 255 {
+			if playerData.PlayerId == 255 {
 				continue
 			}
-			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.Id, playerData.Name))
+			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.PlayerId, playerData.Name))
 		}
 	}
 
@@ -242,10 +242,10 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 	if edit.mapData != nil {
 		for i := 0; i < len(edit.mapData.PlayerData); i++ {
 			playerData := edit.mapData.PlayerData[i]
-			if playerData.Id == 255 {
+			if playerData.PlayerId == 255 {
 				continue
 			}
-			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.Id, playerData.Name))
+			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.PlayerId, playerData.Name))
 		}
 	}
 

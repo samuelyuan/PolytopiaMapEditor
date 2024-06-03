@@ -74,7 +74,7 @@ func getPhysicalMapTileColor(terrain int) color.RGBA {
 func getPoliticalMapTileColor(saveData *fileio.PolytopiaSaveOutput, row int, column int, owner int) color.RGBA {
 	for i := 0; i < len(saveData.PlayerData); i++ {
 		playerData := saveData.PlayerData[i]
-		if playerData.Id == owner {
+		if playerData.PlayerId == owner {
 			return GetPlayerColor(playerData)
 		}
 	}

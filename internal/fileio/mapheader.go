@@ -24,19 +24,23 @@ type MapHeaderInput struct {
 }
 
 type MapHeaderOutput struct {
-	MapHeaderInput     MapHeaderInput
-	MapName            string
-	MapSquareSize      int
-	DisabledTribesArr  []int
-	UnlockedTribesArr  []int
-	GameDifficulty     int
-	NumOpponents       int
-	GameType           int
-	MapPreset          int
-	UnknownArr         []int
-	SelectedTribeSkins []TribeSkin
-	MapWidth           int
-	MapHeight          int
+	MapHeaderInput       MapHeaderInput
+	MapName              string
+	MapSquareSize        int
+	DisabledTribesArr    []int
+	UnlockedTribesArr    []int
+	GameDifficulty       int
+	NumOpponents         int
+	GameType             int
+	MapPreset            int
+	TurnTimeLimitMinutes int
+	UnknownFloat1        float32
+	UnknownFloat2        float32
+	BaseTimeSeconds      float32
+	TimeSettings         []int
+	SelectedTribeSkins   []TribeSkin
+	MapWidth             int
+	MapHeight            int
 }
 
 type TribeSkin struct {
@@ -72,7 +76,11 @@ func DeserializeMapHeaderFromBytes(streamReader *io.SectionReader) MapHeaderOutp
 	numOpponents := unsafeReadUint32(streamReader)
 	gameType := unsafeReadUint16(streamReader)
 	mapPreset := unsafeReadUint8(streamReader)
-	unknownArr := readFixedList(streamReader, 2+int(unlockedTribesSize))
+	turnTimeLimitMinutes := unsafeReadInt32(streamReader)
+	unknownFloat1 := unsafeReadFloat32(streamReader)
+	unknownFloat2 := unsafeReadFloat32(streamReader)
+	baseTimeSeconds := unsafeReadFloat32(streamReader)
+	timeSettings := readFixedList(streamReader, 4)
 
 	selectedTribeSkinSize := unsafeReadUint32(streamReader)
 	selectedTribeSkins := make([]TribeSkin, int(selectedTribeSkinSize))
@@ -89,27 +97,25 @@ func DeserializeMapHeaderFromBytes(streamReader *io.SectionReader) MapHeaderOutp
 	mapWidth := unsafeReadUint16(streamReader)
 	updateFileOffsetMap(fileOffsetMap, streamReader, "MapHeight")
 	mapHeight := unsafeReadUint16(streamReader)
-	if mapWidth == 0 && mapHeight == 0 {
-		updateFileOffsetMap(fileOffsetMap, streamReader, "MapWidth")
-		mapWidth = unsafeReadUint16(streamReader)
-		updateFileOffsetMap(fileOffsetMap, streamReader, "MapHeight")
-		mapHeight = unsafeReadUint16(streamReader)
-	}
 
 	return MapHeaderOutput{
-		MapHeaderInput:     mapHeaderInput,
-		MapName:            mapName,
-		MapSquareSize:      squareSize,
-		DisabledTribesArr:  disabledTribesArr,
-		UnlockedTribesArr:  unlockedTribesArr,
-		GameDifficulty:     int(gameDifficulty),
-		NumOpponents:       int(numOpponents),
-		GameType:           int(gameType),
-		MapPreset:          int(mapPreset),
-		UnknownArr:         convertByteListToInt(unknownArr),
-		SelectedTribeSkins: selectedTribeSkins,
-		MapWidth:           int(mapWidth),
-		MapHeight:          int(mapHeight),
+		MapHeaderInput:       mapHeaderInput,
+		MapName:              mapName,
+		MapSquareSize:        squareSize,
+		DisabledTribesArr:    disabledTribesArr,
+		UnlockedTribesArr:    unlockedTribesArr,
+		GameDifficulty:       int(gameDifficulty),
+		NumOpponents:         int(numOpponents),
+		GameType:             int(gameType),
+		MapPreset:            int(mapPreset),
+		TurnTimeLimitMinutes: int(turnTimeLimitMinutes),
+		UnknownFloat1:        unknownFloat1,
+		UnknownFloat2:        unknownFloat2,
+		BaseTimeSeconds:      baseTimeSeconds,
+		TimeSettings:         convertByteListToInt(timeSettings),
+		SelectedTribeSkins:   selectedTribeSkins,
+		MapWidth:             int(mapWidth),
+		MapHeight:            int(mapHeight),
 	}
 }
 
@@ -134,7 +140,11 @@ func SerializeMapHeaderToBytes(mapHeaderOutput MapHeaderOutput) []byte {
 	serializedData = append(serializedData, ConvertUint32Bytes(mapHeaderOutput.NumOpponents)...)
 	serializedData = append(serializedData, ConvertUint16Bytes(mapHeaderOutput.GameType)...)
 	serializedData = append(serializedData, byte(mapHeaderOutput.MapPreset))
-	serializedData = append(serializedData, ConvertByteList(mapHeaderOutput.UnknownArr)...)
+	serializedData = append(serializedData, ConvertUint32Bytes(mapHeaderOutput.TurnTimeLimitMinutes)...)
+	serializedData = append(serializedData, ConvertFloat32Bytes(mapHeaderOutput.UnknownFloat1)...)
+	serializedData = append(serializedData, ConvertFloat32Bytes(mapHeaderOutput.UnknownFloat2)...)
+	serializedData = append(serializedData, ConvertFloat32Bytes(mapHeaderOutput.BaseTimeSeconds)...)
+	serializedData = append(serializedData, ConvertByteList(mapHeaderOutput.TimeSettings)...)
 
 	serializedData = append(serializedData, ConvertUint32Bytes(len(mapHeaderOutput.SelectedTribeSkins))...)
 	for i := 0; i < len(mapHeaderOutput.SelectedTribeSkins); i++ {

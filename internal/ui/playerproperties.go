@@ -98,11 +98,11 @@ func newPlayerPropertiesBar(edit *editor) fyne.CanvasObject {
 	if edit.mapData != nil {
 		for i := 0; i < len(edit.mapData.PlayerData); i++ {
 			playerData := edit.mapData.PlayerData[i]
-			if playerData.Id == 255 {
+			if playerData.PlayerId == 255 {
 				continue
 			}
 
-			playerIdLabel := widget.NewLabel(fmt.Sprintf("Player %d", playerData.Id))
+			playerIdLabel := widget.NewLabel(fmt.Sprintf("Player %d", playerData.PlayerId))
 			playerNameEntry := createPlayerNameEntry(edit, i, playerData.Name)
 			playerTribeSelect := createPlayerTribeSelect(edit, i)
 			playerTribeSelect.SetSelectedIndex(playerData.Tribe - 2) // offset by 2 because options 0 and 1 aren't there

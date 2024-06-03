@@ -8,7 +8,7 @@ import (
 )
 
 type PlayerData struct {
-	Id                   int
+	PlayerId             int
 	Name                 string
 	AccountId            string
 	AutoPlay             bool
@@ -16,7 +16,7 @@ type PlayerData struct {
 	Tribe                int
 	UnknownByte1         int
 	DifficultyHandicap   int
-	RelationArr          []PlayerRelationData
+	AggressionsByPlayers []PlayerAggression
 	Currency             int
 	Score                int
 	UnknownInt2          int
@@ -36,16 +36,13 @@ type PlayerData struct {
 	DestroyedTurn        int
 	UnknownBuffer2       []int
 	EndScore             int
-	UnknownShort1        int
+	PlayerSkin           int
 	UnknownBuffer3       []int
 }
 
-type PlayerRelationData struct {
-	PlayerId int
-	Unknown1 int
-	Unknown2 int
-	Unknown3 int
-	Unknown4 int
+type PlayerAggression struct {
+	PlayerId   int
+	Aggression int
 }
 
 type PlayerTaskData struct {
@@ -83,16 +80,13 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 	playerArr1Key := buildPlayerArr1Key(int(playerId))
 	updateFileOffsetMap(fileOffsetMap, streamReader, playerArr1Key)
 	unknownArrLen1 := unsafeReadUint16(streamReader)
-	relationArr := make([]PlayerRelationData, 0)
+	aggressionsByPlayers := make([]PlayerAggression, 0)
 	for i := 0; i < int(unknownArrLen1); i++ {
 		playerIdOther := unsafeReadUint8(streamReader)
-		value2 := readFixedList(streamReader, 4)
-		relationArr = append(relationArr, PlayerRelationData{
-			PlayerId: int(playerIdOther),
-			Unknown1: int(value2[0]),
-			Unknown2: int(value2[1]),
-			Unknown3: int(value2[2]),
-			Unknown4: int(value2[3]),
+		aggression := unsafeReadInt32(streamReader)
+		aggressionsByPlayers = append(aggressionsByPlayers, PlayerAggression{
+			PlayerId:   int(playerIdOther),
+			Aggression: int(aggression),
 		})
 	}
 
@@ -176,11 +170,11 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 	destroyedTurn := unsafeReadUint32(streamReader)
 	unknownBuffer2 := convertByteListToInt(readFixedList(streamReader, 4))
 	endScore := unsafeReadInt32(streamReader)
-	unknownShort1 := unsafeReadUint16(streamReader)
+	playerSkin := unsafeReadUint16(streamReader)
 	unknownBuffer3 := convertByteListToInt(readFixedList(streamReader, 4))
 
 	return PlayerData{
-		Id:                   int(playerId),
+		PlayerId:             int(playerId),
 		Name:                 playerName,
 		AccountId:            playerAccountId,
 		AutoPlay:             int(autoPlay) != 0,
@@ -188,7 +182,7 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 		Tribe:                int(tribe),
 		UnknownByte1:         int(unknownByte1),
 		DifficultyHandicap:   int(difficultyHandicap),
-		RelationArr:          relationArr,
+		AggressionsByPlayers: aggressionsByPlayers,
 		Currency:             int(currency),
 		Score:                int(score),
 		UnknownInt2:          int(unknownInt2),
@@ -208,7 +202,7 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 		DestroyedTurn:        int(destroyedTurn),
 		UnknownBuffer2:       unknownBuffer2,
 		EndScore:             int(endScore),
-		UnknownShort1:        int(unknownShort1),
+		PlayerSkin:           int(playerSkin),
 		UnknownBuffer3:       unknownBuffer3,
 	}
 }
@@ -216,7 +210,7 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData := make([]byte, 0)
 
-	allPlayerData = append(allPlayerData, byte(playerData.Id))
+	allPlayerData = append(allPlayerData, byte(playerData.PlayerId))
 	allPlayerData = append(allPlayerData, ConvertVarString(playerData.Name)...)
 	allPlayerData = append(allPlayerData, ConvertVarString(playerData.AccountId)...)
 	allPlayerData = append(allPlayerData, ConvertBoolToByte(playerData.AutoPlay))
@@ -226,10 +220,10 @@ func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData = append(allPlayerData, byte(playerData.UnknownByte1))
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.DifficultyHandicap)...)
 
-	allPlayerData = append(allPlayerData, ConvertUint16Bytes(len(playerData.RelationArr))...)
-	for i := 0; i < len(playerData.RelationArr); i++ {
-		allPlayerData = append(allPlayerData, byte(playerData.RelationArr[i].PlayerId), byte(playerData.RelationArr[i].Unknown1),
-			byte(playerData.RelationArr[i].Unknown2), byte(playerData.RelationArr[i].Unknown3), byte(playerData.RelationArr[i].Unknown4))
+	allPlayerData = append(allPlayerData, ConvertUint16Bytes(len(playerData.AggressionsByPlayers))...)
+	for i := 0; i < len(playerData.AggressionsByPlayers); i++ {
+		allPlayerData = append(allPlayerData, byte(playerData.AggressionsByPlayers[i].PlayerId))
+		allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.AggressionsByPlayers[i].Aggression)...)
 	}
 
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.Currency)...)
@@ -280,7 +274,7 @@ func SerializePlayerDataToBytes(playerData PlayerData) []byte {
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.DestroyedTurn)...)
 	allPlayerData = append(allPlayerData, ConvertByteList(playerData.UnknownBuffer2)...)
 	allPlayerData = append(allPlayerData, ConvertUint32Bytes(playerData.EndScore)...)
-	allPlayerData = append(allPlayerData, ConvertUint16Bytes(playerData.UnknownShort1)...)
+	allPlayerData = append(allPlayerData, ConvertUint16Bytes(playerData.PlayerSkin)...)
 	allPlayerData = append(allPlayerData, ConvertByteList(playerData.UnknownBuffer3)...)
 
 	return allPlayerData
@@ -306,23 +300,20 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 
 	// unknown array
 	newArraySize := index + 1
-	relationArr := make([]PlayerRelationData, 0)
+	aggressionsByPlayers := make([]PlayerAggression, 0)
 	for i := 1; i <= int(newArraySize); i++ {
 		playerId := i
 		if i == newArraySize {
 			playerId = 255
 		}
-		relationArr = append(relationArr, PlayerRelationData{
-			PlayerId: playerId,
-			Unknown1: 0,
-			Unknown2: 0,
-			Unknown3: 0,
-			Unknown4: 0,
+		aggressionsByPlayers = append(aggressionsByPlayers, PlayerAggression{
+			PlayerId:   playerId,
+			Aggression: 0,
 		})
 	}
 
 	playerData := PlayerData{
-		Id:                   index,
+		PlayerId:             index,
 		Name:                 playerName,
 		AccountId:            "00000000-0000-0000-0000-000000000000",
 		AutoPlay:             true,
@@ -330,7 +321,7 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 		Tribe:                2, // Ai-mo
 		UnknownByte1:         1,
 		DifficultyHandicap:   2,
-		RelationArr:          relationArr,
+		AggressionsByPlayers: aggressionsByPlayers,
 		Currency:             5,
 		Score:                0,
 		UnknownInt2:          0,
@@ -350,7 +341,7 @@ func BuildEmptyPlayer(index int, playerName string, overrideColor color.RGBA) Pl
 		DestroyedTurn:        0,
 		UnknownBuffer2:       []int{255, 255, 255, 255},
 		EndScore:             -1,
-		UnknownShort1:        0,
+		PlayerSkin:           0,
 		UnknownBuffer3:       []int{255, 255, 255, 255},
 	}
 

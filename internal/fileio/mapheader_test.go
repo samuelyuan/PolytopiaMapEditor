@@ -32,15 +32,19 @@ var (
 			GameModeBase:  5,
 			GameModeRules: 6,
 		},
-		MapName:           "Test Map",
-		MapSquareSize:     16,
-		DisabledTribesArr: []int{3, 5, 16, 17},
-		UnlockedTribesArr: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17},
-		GameDifficulty:    1,
-		NumOpponents:      15,
-		GameType:          0,
-		MapPreset:         3,
-		UnknownArr:        []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		MapName:              "Test Map",
+		MapSquareSize:        16,
+		DisabledTribesArr:    []int{3, 5, 16, 17},
+		UnlockedTribesArr:    []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17},
+		GameDifficulty:       1,
+		NumOpponents:         15,
+		GameType:             0,
+		MapPreset:            3,
+		TurnTimeLimitMinutes: 1440,
+		UnknownFloat1:        0.0,
+		UnknownFloat2:        0.0,
+		BaseTimeSeconds:      86400,
+		TimeSettings:         []int{0, 0, 0, 0},
 		SelectedTribeSkins: []TribeSkin{
 			{
 				Tribe: 11,
@@ -62,7 +66,19 @@ var (
 		4, 0, 3, 0, 5, 0, 16, 0, 17, 0,
 		// unlocked tribes
 		18, 0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0, 15, 0, 16, 0, 17, 0,
-		1, 0, 15, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 11, 0, 14, 0, 16, 0, 16, 0,
+		1, 0, 15, 0, 0, 0,
+		0, 0, 3,
+		// turn time limit
+		160, 5, 0, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		// base time seconds
+		0, 192, 168, 71,
+		0, 0, 0, 0,
+		// selected tribe skins
+		1, 0, 0, 0, 11, 0, 14, 0,
+		// map dimensions
+		16, 0, 16, 0,
 	}
 )
 
