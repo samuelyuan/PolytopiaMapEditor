@@ -77,8 +77,6 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 	unknownByte1 := unsafeReadUint8(streamReader)
 	difficultyHandicap := unsafeReadUint32(streamReader)
 
-	playerArr1Key := buildPlayerArr1Key(int(playerId))
-	updateFileOffsetMap(fileOffsetMap, streamReader, playerArr1Key)
 	unknownArrLen1 := unsafeReadUint16(streamReader)
 	aggressionsByPlayers := make([]PlayerAggression, 0)
 	for i := 0; i < int(unknownArrLen1); i++ {
@@ -90,10 +88,7 @@ func DeserializePlayerDataFromBytes(streamReader *io.SectionReader) PlayerData {
 		})
 	}
 
-	playerCurrencyKey := buildPlayerCurrencyKey(int(playerId))
-	updateFileOffsetMap(fileOffsetMap, streamReader, playerCurrencyKey)
 	currency := unsafeReadUint32(streamReader)
-
 	score := unsafeReadUint32(streamReader)
 	unknownInt2 := unsafeReadUint32(streamReader)
 	numCities := unsafeReadUint16(streamReader)

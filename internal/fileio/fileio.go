@@ -142,8 +142,6 @@ func readAllPlayerData(streamReader *io.SectionReader) []PlayerData {
 	allPlayerData := make([]PlayerData, int(numPlayers))
 
 	for i := 0; i < int(numPlayers); i++ {
-		playerStartKey := buildPlayerStartKey(i)
-		updateFileOffsetMap(fileOffsetMap, streamReader, playerStartKey)
 		playerData := DeserializePlayerDataFromBytes(streamReader)
 		allPlayerData[i] = playerData
 	}

@@ -38,18 +38,6 @@ func buildMapHeaderEndKey() string {
 	return "MapHeaderEnd"
 }
 
-func buildPlayerStartKey(index int) string {
-	return fmt.Sprintf("PlayerStart%v", index)
-}
-
-func buildPlayerArr1Key(playerId int) string {
-	return fmt.Sprintf("PlayerArr1-Id%v", playerId)
-}
-
-func buildPlayerCurrencyKey(playerId int) string {
-	return fmt.Sprintf("PlayerCurrency-Id%v", playerId)
-}
-
 func updateFileOffsetMap(fileOffsetMap map[string]int, streamReader *io.SectionReader, unitLocationKey string) {
 	fileOffset, err := streamReader.Seek(0, io.SeekCurrent)
 	if err != nil {
