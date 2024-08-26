@@ -15,6 +15,7 @@ var (
 type PolytopiaSaveOutput struct {
 	MapHeight         int
 	MapWidth          int
+	GameVersion       int
 	MapHeaderOutput   MapHeaderOutput
 	InitialTileData   [][]TileData
 	InitialPlayerData []PlayerData
@@ -116,7 +117,7 @@ func convertByteListToInt(oldArr []byte) []int {
 	return newArr
 }
 
-func readTileData(streamReader *io.SectionReader, tileData [][]TileData, mapWidth int, mapHeight int) {
+func readTileData(streamReader *io.SectionReader, tileData [][]TileData, mapWidth int, mapHeight int, gameVersion int) {
 	updateFileOffsetMap(fileOffsetMap, streamReader, buildMapStartKey())
 
 	for i := 0; i < int(mapHeight); i++ {
@@ -124,7 +125,7 @@ func readTileData(streamReader *io.SectionReader, tileData [][]TileData, mapWidt
 			tileStartKey := buildTileStartKey(j, i)
 			updateFileOffsetMap(fileOffsetMap, streamReader, tileStartKey)
 
-			tileData[i][j] = DeserializeTileDataFromBytes(streamReader, i, j)
+			tileData[i][j] = DeserializeTileDataFromBytes(streamReader, i, j, gameVersion)
 
 			tileEndKey := buildTileEndKey(j, i)
 			updateFileOffsetMap(fileOffsetMap, streamReader, tileEndKey)
@@ -207,7 +208,8 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	for i := 0; i < initialMapHeaderOutput.MapHeight; i++ {
 		initialTileData[i] = make([]TileData, initialMapHeaderOutput.MapWidth)
 	}
-	readTileData(streamReader, initialTileData, initialMapHeaderOutput.MapWidth, initialMapHeaderOutput.MapHeight)
+	gameVersion := int(initialMapHeaderOutput.MapHeaderInput.Version1)
+	readTileData(streamReader, initialTileData, initialMapHeaderOutput.MapWidth, initialMapHeaderOutput.MapHeight, gameVersion)
 	initialPlayerData := readAllPlayerData(streamReader)
 
 	_ = readFixedList(streamReader, 3)
@@ -221,7 +223,7 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	for i := 0; i < currentMapHeaderOutput.MapHeight; i++ {
 		tileData[i] = make([]TileData, currentMapHeaderOutput.MapWidth)
 	}
-	readTileData(streamReader, tileData, currentMapHeaderOutput.MapWidth, currentMapHeaderOutput.MapHeight)
+	readTileData(streamReader, tileData, currentMapHeaderOutput.MapWidth, currentMapHeaderOutput.MapHeight, gameVersion)
 	playerData := readAllPlayerData(streamReader)
 
 	tribeCityMap := buildTribeCityMap(currentMapHeaderOutput, tileData)
@@ -229,6 +231,7 @@ func ReadPolytopiaDecompressedFile(inputFilename string) (*PolytopiaSaveOutput, 
 	output := &PolytopiaSaveOutput{
 		MapHeight:         currentMapHeaderOutput.MapHeight,
 		MapWidth:          currentMapHeaderOutput.MapWidth,
+		GameVersion:       int(gameVersion),
 		MapHeaderOutput:   currentMapHeaderOutput,
 		InitialTileData:   initialTileData,
 		InitialPlayerData: initialPlayerData,

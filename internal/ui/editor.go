@@ -194,7 +194,11 @@ func (edit *editor) WriteMapState() {
 	decompressedFilename := originalFilname + ".decomp"
 	outputFilename := originalFilname
 
-	fileio.WriteMapToFile(decompressedFilename, edit.mapData.TileData)
+	fileInfo := fileio.FileInfo{
+		InputFilename: decompressedFilename,
+		GameVersion:   int(edit.mapData.GameVersion),
+	}
+	fileio.WriteMapToFile(fileInfo, edit.mapData.TileData)
 	fileio.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData)
 	fileio.WriteMapHeaderToFile(decompressedFilename, edit.mapData.MapHeaderOutput)
 	fmt.Println("Exporting map to", outputFilename)

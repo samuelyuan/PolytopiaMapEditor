@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+type FileInfo struct {
+	InputFilename string
+	GameVersion   int
+}
+
 func WriteUint8AtFileOffset(inputFilename string, offset int, value int) {
 	inputFile, err := os.OpenFile(inputFilename, os.O_RDWR, 0644)
 	defer inputFile.Close()
@@ -153,14 +158,14 @@ func ConvertBoolToByte(value bool) byte {
 	}
 }
 
-func ConvertMapDataToBytes(tileData [][]TileData) []byte {
+func ConvertMapDataToBytes(tileData [][]TileData, gameVersion int) []byte {
 	mapHeight := len(tileData)
 	mapWidth := len(tileData[0])
 
 	allMapBytes := make([]byte, 0)
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
-			tileBytes := SerializeTileToBytes(tileData[i][j])
+			tileBytes := SerializeTileToBytes(tileData[i][j], gameVersion)
 			allMapBytes = append(allMapBytes, tileBytes...)
 		}
 	}
@@ -176,14 +181,14 @@ func ConvertAllPlayerDataToBytes(allPlayerData []PlayerData) []byte {
 	return allPlayerBytes
 }
 
-func WriteTileToFile(inputFilename string, tileDataOverwrite TileData, targetX int, targetY int) {
-	tileBytes := SerializeTileToBytes(tileDataOverwrite)
-	WriteAndShiftData(inputFilename, buildTileStartKey(targetX, targetY), buildTileEndKey(targetX, targetY), tileBytes)
+func WriteTileToFile(fileInfo FileInfo, tileDataOverwrite TileData, targetX int, targetY int) {
+	tileBytes := SerializeTileToBytes(tileDataOverwrite, fileInfo.GameVersion)
+	WriteAndShiftData(fileInfo.InputFilename, buildTileStartKey(targetX, targetY), buildTileEndKey(targetX, targetY), tileBytes)
 }
 
-func WriteMapToFile(inputFilename string, tileDataOverwrite [][]TileData) {
-	allTileBytes := ConvertMapDataToBytes(tileDataOverwrite)
-	WriteAndShiftData(inputFilename, buildMapStartKey(), buildMapEndKey(), allTileBytes)
+func WriteMapToFile(fileInfo FileInfo, tileDataOverwrite [][]TileData) {
+	allTileBytes := ConvertMapDataToBytes(tileDataOverwrite, fileInfo.GameVersion)
+	WriteAndShiftData(fileInfo.InputFilename, buildMapStartKey(), buildMapEndKey(), allTileBytes)
 }
 
 func WritePlayersToFile(inputFilename string, playersList []PlayerData) {
@@ -196,8 +201,8 @@ func WriteMapHeaderToFile(inputFilename string, mapHeader MapHeaderOutput) {
 	WriteAndShiftData(inputFilename, buildMapHeaderStartKey(), buildMapHeaderEndKey(), mapHeaderBytes)
 }
 
-func ModifyTileTerrain(inputFilename string, targetX int, targetY int, updatedValue int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func ModifyTileTerrain(fileInfo FileInfo, targetX int, targetY int, updatedValue int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -220,11 +225,11 @@ func ModifyTileTerrain(inputFilename string, targetX int, targetY int, updatedVa
 	}
 	updatedTile.Altitude = altitude
 
-	WriteTileToFile(inputFilename, updatedTile, targetX, targetY)
+	WriteTileToFile(fileInfo, updatedTile, targetX, targetY)
 }
 
-func ModifyUnitTribe(inputFilename string, targetX int, targetY int, updatedValue int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func ModifyUnitTribe(fileInfo FileInfo, targetX int, targetY int, updatedValue int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -244,7 +249,7 @@ func ModifyUnitTribe(inputFilename string, targetX int, targetY int, updatedValu
 	} else {
 		fmt.Println(fmt.Sprintf("No transition unit on tile (%v, %v)", targetX, targetY))
 	}
-	WriteTileToFile(inputFilename, updatedTile, targetX, targetY)
+	WriteTileToFile(fileInfo, updatedTile, targetX, targetY)
 }
 
 func BuildTribeUnitMap(saveOutput *PolytopiaSaveOutput) map[int][]UnitLocationData {
@@ -273,8 +278,8 @@ func BuildTribeUnitMap(saveOutput *PolytopiaSaveOutput) map[int][]UnitLocationDa
 	return tribeUnitMap
 }
 
-func ConvertTribe(inputFilename string, oldTribe int, newTribe int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func ConvertTribe(fileInfo FileInfo, oldTribe int, newTribe int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -302,12 +307,12 @@ func ConvertTribe(inputFilename string, oldTribe int, newTribe int) {
 		saveOutput.TileData[targetY][targetX] = updatedTile
 	}
 
-	WriteMapToFile(inputFilename, saveOutput.TileData)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
 	fmt.Println(fmt.Sprintf("Changed all units under tribe %v to tribe %v. Total of %v units converted.", oldTribe, newTribe, len(tribeUnits)))
 }
 
-func ModifyUnitType(inputFilename string, targetX int, targetY int, updatedValue int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func ModifyUnitType(fileInfo FileInfo, targetX int, targetY int, updatedValue int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -320,7 +325,7 @@ func ModifyUnitType(inputFilename string, targetX int, targetY int, updatedValue
 	} else {
 		fmt.Println(fmt.Sprintf("No unit on tile (%v, %v)", targetX, targetY))
 	}
-	WriteTileToFile(inputFilename, updatedTile, targetX, targetY)
+	WriteTileToFile(fileInfo, updatedTile, targetX, targetY)
 }
 
 func BuildEmptyTile(x int, y int) TileData {
@@ -390,8 +395,8 @@ func BuildEmptyCity(cityName string) ImprovementData {
 	}
 }
 
-func AddCityToTile(inputFilename string, targetX int, targetY int, cityName string, tribe int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func AddCityToTile(fileInfo FileInfo, targetX int, targetY int, cityName string, tribe int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -407,20 +412,20 @@ func AddCityToTile(inputFilename string, targetX int, targetY int, cityName stri
 	saveOutput.TileData[targetY][targetX].ImprovementType = 1
 	improvementData := BuildEmptyCity(cityName)
 	saveOutput.TileData[targetY][targetX].ImprovementData = &improvementData
-	WriteTileToFile(inputFilename, saveOutput.TileData[targetY][targetX], targetX, targetY)
+	WriteTileToFile(fileInfo, saveOutput.TileData[targetY][targetX], targetX, targetY)
 }
 
-func ResetTile(inputFilename string, targetX int, targetY int) {
+func ResetTile(fileInfo FileInfo, targetX int, targetY int) {
 	updatedTile := BuildEmptyTile(targetX, targetY)
-	WriteTileToFile(inputFilename, updatedTile, targetX, targetY)
+	WriteTileToFile(fileInfo, updatedTile, targetX, targetY)
 }
 
-func ExpandRows(inputFilename string, newRowDimensions int) {
+func ExpandRows(fileInfo FileInfo, newRowDimensions int) {
 	if newRowDimensions >= 256 {
 		log.Fatal("Updated value is over 256")
 	}
 
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -438,14 +443,15 @@ func ExpandRows(inputFilename string, newRowDimensions int) {
 		}
 		saveOutput.TileData = append(saveOutput.TileData, newTileRow)
 	}
-	WriteMapToFile(inputFilename, saveOutput.TileData)
-	ModifyMapDimensions(inputFilename, saveOutput.MapWidth, newRowDimensions)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
+	ModifyMapDimensions(fileInfo.InputFilename, saveOutput.MapWidth, newRowDimensions)
 
-	finalSaveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+	finalSaveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	fmt.Println(fmt.Sprintf("New dimensions, width: %v, height: %v", finalSaveOutput.MapWidth, finalSaveOutput.MapHeight))
 }
 
-func ExpandColumns(inputFilename string, newColDimensions int) {
+func ExpandColumns(fileInfo FileInfo, newColDimensions int) {
+	inputFilename := fileInfo.InputFilename
 	if newColDimensions >= 256 {
 		log.Fatal("Updated value is over 256")
 	}
@@ -466,19 +472,19 @@ func ExpandColumns(inputFilename string, newColDimensions int) {
 			saveOutput.TileData[y] = append(saveOutput.TileData[y], BuildEmptyTile(x, y))
 		}
 	}
-	WriteMapToFile(inputFilename, saveOutput.TileData)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
 	ModifyMapDimensions(inputFilename, newColDimensions, saveOutput.MapHeight)
 
 	finalSaveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	fmt.Println(fmt.Sprintf("New dimensions, width: %v, height: %v", finalSaveOutput.MapWidth, finalSaveOutput.MapHeight))
 }
 
-func ExpandTiles(inputFilename string, newSquareSizeDimensions int) {
+func ExpandTiles(fileInfo FileInfo, newSquareSizeDimensions int) {
 	if newSquareSizeDimensions >= 256 {
 		log.Fatal("Updated value is over 256")
 	}
 
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -488,12 +494,12 @@ func ExpandTiles(inputFilename string, newSquareSizeDimensions int) {
 			newSquareSizeDimensions, saveOutput.MapWidth, saveOutput.MapHeight))
 	}
 
-	ExpandColumns(inputFilename, newSquareSizeDimensions)
-	ExpandRows(inputFilename, newSquareSizeDimensions)
+	ExpandColumns(fileInfo, newSquareSizeDimensions)
+	ExpandRows(fileInfo, newSquareSizeDimensions)
 }
 
-func RevealAllTiles(inputFilename string, newTribe int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func RevealAllTiles(fileInfo FileInfo, newTribe int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -526,11 +532,11 @@ func RevealAllTiles(inputFilename string, newTribe int) {
 		}
 	}
 
-	WriteMapToFile(inputFilename, saveOutput.TileData)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
 }
 
-func RevealTileForTribe(inputFilename string, targetX int, targetY int, newTribe int) {
-	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
+func RevealTileForTribe(fileInfo FileInfo, targetX int, targetY int, newTribe int) {
+	saveOutput, err := ReadPolytopiaDecompressedFile(fileInfo.InputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
 	}
@@ -549,7 +555,7 @@ func RevealTileForTribe(inputFilename string, targetX int, targetY int, newTribe
 		saveOutput.TileData[targetY][targetX].PlayerVisibility = append(saveOutput.TileData[targetY][targetX].PlayerVisibility, newTribe)
 		fmt.Println(fmt.Sprintf("Revealed (%v, %v) for tribe %v", targetX, targetY, newTribe))
 	}
-	WriteTileToFile(inputFilename, saveOutput.TileData[targetY][targetX], targetX, targetY)
+	WriteTileToFile(fileInfo, saveOutput.TileData[targetY][targetX], targetX, targetY)
 }
 
 func generateRandomColor() color.RGBA {
@@ -632,7 +638,8 @@ func AddPlayer(inputFilename string) {
 	ModifyAllExistingPlayerUnknownArr(inputFilename)
 }
 
-func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
+func SwapPlayers(fileInfo FileInfo, playerId1 int, playerId2 int) {
+	inputFilename := fileInfo.InputFilename
 	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
@@ -713,7 +720,7 @@ func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
 		}
 	}
 
-	WriteMapToFile(inputFilename, saveOutput.TileData)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
 
 	var player1Tribe, player2Tribe int
 	player1Color := make([]int, 4)
@@ -751,7 +758,8 @@ func SwapPlayers(inputFilename string, playerId1 int, playerId2 int) {
 	WritePlayersToFile(inputFilename, saveOutput.PlayerData)
 }
 
-func SetTileCapital(inputFilename string, targetX int, targetY int, newCityName string, updatedTribe int) {
+func SetTileCapital(fileInfo FileInfo, targetX int, targetY int, newCityName string, updatedTribe int) {
+	inputFilename := fileInfo.InputFilename
 	saveOutput, err := ReadPolytopiaDecompressedFile(inputFilename)
 	if err != nil {
 		log.Fatal("Failed to read save file")
@@ -810,7 +818,7 @@ func SetTileCapital(inputFilename string, targetX int, targetY int, newCityName 
 			fmt.Println(fmt.Sprintf("Set neighboring tile (%v, %v) to have owner %v", neighborX, neighborY, updatedTribe))
 		}
 	}
-	WriteMapToFile(inputFilename, saveOutput.TileData)
+	WriteMapToFile(fileInfo, saveOutput.TileData)
 
 	for i := 0; i < len(saveOutput.PlayerData); i++ {
 		if saveOutput.PlayerData[i].PlayerId == updatedTribe {
