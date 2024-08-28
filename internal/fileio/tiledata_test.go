@@ -18,7 +18,7 @@ func TestDeserializeEmptyTileDataFromBytes(t *testing.T) {
 		0, 0, 0, 0, 0, 0, 0, 0,
 	}
 	streamReader := io.NewSectionReader(bytes.NewReader(inputByteData), 0, int64(len(inputByteData)))
-	result := DeserializeTileDataFromBytes(streamReader, 1, 3)
+	result := DeserializeTileDataFromBytes(streamReader, 1, 3, 104)
 	expected := TileData{
 		WorldCoordinates:           [2]int{3, 1},
 		Terrain:                    3,
@@ -76,7 +76,8 @@ func TestSerializeEmptyTileDataToBytes(t *testing.T) {
 		TileSkin:                   0,
 		Unknown:                    []int{0, 0},
 	}
-	resultBytes := SerializeTileToBytes(tileData)
+	versionNumber := 104
+	resultBytes := SerializeTileToBytes(tileData, versionNumber)
 	expectedBytes := []byte{3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 8, 0, 1, 0, 0, 0,
 		// coordinates
 		255, 255, 255, 255, 255, 255, 255, 255,
@@ -132,7 +133,8 @@ func TestSerializeTileDataWithImprovementToBytes(t *testing.T) {
 		Unknown:                    []int{0, 0},
 	}
 
-	resultBytes := SerializeTileToBytes(tileData)
+	versionNumber := 104
+	resultBytes := SerializeTileToBytes(tileData, versionNumber)
 	expectedBytes := []byte{3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 8, 0, 1, 0, 0, 0,
 		// coordinates
 		255, 255, 255, 255, 255, 255, 255, 255,
@@ -187,7 +189,8 @@ func TestSerializeTileDataWithUnitToBytes(t *testing.T) {
 		Unknown:                    []int{0, 0},
 	}
 
-	resultBytes := SerializeTileToBytes(tileData)
+	versionNumber := 104
+	resultBytes := SerializeTileToBytes(tileData, versionNumber)
 	expectedBytes := []byte{3, 0, 0, 0, 1, 0, 0, 0, 3, 0, 8, 0, 1, 0, 0, 0,
 		// coordinates
 		255, 255, 255, 255, 255, 255, 255, 255,
