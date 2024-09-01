@@ -27,6 +27,7 @@ type TileProperties struct {
 	unitTypeSelect            *widget.Select
 	unitHasMovedCheckbox      *widget.Check
 	unitHasAttackedCheckbox   *widget.Check
+	tileFloodedCheckbox       *widget.Check
 }
 
 func NewTileProperties(edit *editor) TileProperties {
@@ -44,6 +45,7 @@ func NewTileProperties(edit *editor) TileProperties {
 	tileProperties.unitTypeSelect = createUnitTypeSelect(edit)
 	tileProperties.unitHasMovedCheckbox = createUnitHasMovedCheckbox(edit)
 	tileProperties.unitHasAttackedCheckbox = createUnitHasAttackedCheckbox(edit)
+	tileProperties.tileFloodedCheckbox = createTileFloodedCheckbox(edit)
 	return tileProperties
 }
 
@@ -332,6 +334,22 @@ func createUnitHasAttackedCheckbox(edit *editor) *widget.Check {
 	})
 }
 
+func createTileFloodedCheckbox(edit *editor) *widget.Check {
+	return widget.NewCheck("", func(value bool) {
+		if edit.tileX == -1 || edit.tileY == -1 {
+			return
+		}
+
+		flag := 0
+		if value {
+			flag = 1
+		}
+		edit.mapData.TileData[edit.tileY][edit.tileX].FloodedFlag = flag
+
+		edit.refreshMapImage()
+	})
+}
+
 func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int, tile fileio.TileData) {
 	tileProperties.tileCoordinatesProperties.SetText(fmt.Sprintf("Tile (%d, %d)", tileX, tileY))
 
@@ -389,6 +407,8 @@ func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int,
 		tileProperties.unitHasAttackedCheckbox.SetChecked(false)
 		tileProperties.unitHasAttackedCheckbox.Disable()
 	}
+	tileProperties.tileFloodedCheckbox.SetChecked(tile.FloodedFlag != 0)
+	tileProperties.tileFloodedCheckbox.Disable()
 }
 
 func (tileProperties *TileProperties) GetOptions() []fyne.CanvasObject {
@@ -406,6 +426,7 @@ func (tileProperties *TileProperties) GetOptions() []fyne.CanvasObject {
 		container.NewHBox(widget.NewLabel("Unit Type"), tileProperties.unitTypeSelect),
 		container.NewHBox(widget.NewLabel("Unit Has Moved"), tileProperties.unitHasMovedCheckbox),
 		container.NewHBox(widget.NewLabel("Unit Has Attacked"), tileProperties.unitHasAttackedCheckbox),
+		container.NewHBox(widget.NewLabel("Tile Flooded"), tileProperties.tileFloodedCheckbox),
 	}
 }
 

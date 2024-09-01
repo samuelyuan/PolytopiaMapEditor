@@ -41,8 +41,8 @@ type TileData struct {
 	HasWaterRoute              bool
 	TileSkin                   int
 	Unknown                    []int
-	Unknown2                   int   // introduced in new aquarion update (version 105)
-	Unknown2Arr                []int // introduced in new aquarion update (version 105)
+	FloodedFlag                int // introduced in new aquarion update (version 105)
+	FloodedValue               int // introduced in new aquarion update (version 105)
 }
 
 type UnitData struct {
@@ -153,12 +153,12 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 	hasWaterRoute := unsafeReadUint8(streamReader)
 	tileSkin := unsafeReadUint16(streamReader)
 	unknown := convertByteListToInt(readFixedList(streamReader, 2))
-	var unknown2 int
-	var unknown2Arr []int
+	var floodedFlag int
+	var floodedValue int
 	if gameVersion >= 105 {
-		unknown2 = int(unsafeReadUint8(streamReader))
-		if unknown2 == 1 {
-			unknown2Arr = convertByteListToInt(readFixedList(streamReader, 4))
+		floodedFlag = int(unsafeReadUint8(streamReader))
+		if floodedFlag == 1 {
+			floodedValue = int(unsafeReadUint32(streamReader))
 		}
 	}
 
@@ -186,8 +186,8 @@ func DeserializeTileDataFromBytes(streamReader *io.SectionReader, expectedRow in
 		HasWaterRoute:              hasWaterRoute != 0,
 		TileSkin:                   int(tileSkin),
 		Unknown:                    unknown,
-		Unknown2:                   unknown2,
-		Unknown2Arr:                unknown2Arr,
+		FloodedFlag:                floodedFlag,
+		FloodedValue:               floodedValue,
 	}
 }
 
@@ -268,9 +268,9 @@ func SerializeTileToBytes(tileData TileData, gameVersion int) []byte {
 	tileBytes = append(tileBytes, ConvertUint16Bytes(tileData.TileSkin)...)
 	tileBytes = append(tileBytes, ConvertByteList(tileData.Unknown)...)
 	if gameVersion >= 105 {
-		tileBytes = append(tileBytes, byte(tileData.Unknown2))
-		if tileData.Unknown2 == 1 {
-			tileBytes = append(tileBytes, ConvertByteList(tileData.Unknown2Arr)...)
+		tileBytes = append(tileBytes, byte(tileData.FloodedFlag))
+		if tileData.FloodedFlag == 1 {
+			tileBytes = append(tileBytes, ConvertUint32Bytes(tileData.FloodedValue)...)
 		}
 	}
 	return tileBytes
