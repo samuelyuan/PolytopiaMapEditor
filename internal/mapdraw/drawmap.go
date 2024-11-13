@@ -23,6 +23,12 @@ var (
 	NeighborOffsetWithDiagonals = [8][2]int{{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}}
 )
 
+type GraphicsOptions struct {
+	ShowResourcesImprovements bool
+	ShowRoads                 bool
+	ShowUnits                 bool
+}
+
 func getImagePosition(i int, j int) (float64, float64) {
 	x := float64(j) * (radius)
 	y := float64(i) * (radius)
@@ -198,7 +204,13 @@ func drawUnitIcon(dc *gg.Context, imageX float64, imageY float64, unitColor colo
 	dc.Fill()
 }
 
-func drawTerritoryTiles(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
+func drawTerritoryTiles(
+	dc *gg.Context,
+	saveData *fileio.PolytopiaSaveOutput,
+	mapHeight int,
+	mapWidth int,
+	graphicsOptions GraphicsOptions,
+) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
 			x, y := getImagePosition(i, j)
@@ -230,20 +242,26 @@ func drawTerritoryTiles(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, ma
 						// Village
 						drawCityIcon(dc, x, y, color.RGBA{255, 255, 255, 255})
 					}
-				} else if tileData.ImprovementType == 8 {
-					drawPortIcon(dc, x, y)
-				} else {
-					drawImprovementIcon(dc, x, y)
+				} else if graphicsOptions.ShowResourcesImprovements {
+					if tileData.ImprovementType == 8 {
+						drawPortIcon(dc, x, y)
+					} else {
+						drawImprovementIcon(dc, x, y)
+					}
 				}
 			}
 
-			if tileData.ResourceExists {
-				drawResourcesIcon(dc, x, y)
+			if graphicsOptions.ShowResourcesImprovements {
+				if tileData.ResourceExists {
+					drawResourcesIcon(dc, x, y)
+				}
 			}
 
-			if tileData.Unit != nil {
-				cityColor := getPoliticalMapTileColor(saveData, i, j, int(tileData.Unit.Owner))
-				drawUnitIcon(dc, x, y, cityColor)
+			if graphicsOptions.ShowUnits {
+				if tileData.Unit != nil {
+					cityColor := getPoliticalMapTileColor(saveData, i, j, int(tileData.Unit.Owner))
+					drawUnitIcon(dc, x, y, cityColor)
+				}
 			}
 		}
 	}
@@ -373,7 +391,12 @@ func drawCityNames(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeig
 	}
 }
 
-func DrawMap(saveData *fileio.PolytopiaSaveOutput, highlightedTileX int, highlightedTileY int) image.Image {
+func DrawMap(
+	saveData *fileio.PolytopiaSaveOutput,
+	highlightedTileX int,
+	highlightedTileY int,
+	graphicsOptions GraphicsOptions,
+) image.Image {
 	mapHeight := saveData.MapHeight
 	mapWidth := saveData.MapWidth
 
@@ -391,8 +414,10 @@ func DrawMap(saveData *fileio.PolytopiaSaveOutput, highlightedTileX int, highlig
 	// Need to invert image because the map format is inverted
 	dc.InvertY()
 
-	drawTerritoryTiles(dc, saveData, mapHeight, mapWidth)
-	drawRoads(dc, saveData, mapHeight, mapWidth)
+	drawTerritoryTiles(dc, saveData, mapHeight, mapWidth, graphicsOptions)
+	if graphicsOptions.ShowRoads {
+		drawRoads(dc, saveData, mapHeight, mapWidth)
+	}
 	drawBorders(dc, saveData, mapHeight, mapWidth)
 
 	// draw highlighted tile

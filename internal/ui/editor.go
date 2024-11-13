@@ -23,14 +23,15 @@ import (
 )
 
 type editor struct {
-	drawSurface             *interactiveRaster
-	status                  *widget.Label
-	zoomLabel               *widget.Label
-	leftPropertiesBar       fyne.CanvasObject
-	tileProperties          TileProperties
-	playerPropertiesBar     fyne.CanvasObject
-	cache                   *image.RGBA
-	cacheWidth, cacheHeight int
+	drawSurface                      *interactiveRaster
+	status                           *widget.Label
+	zoomLabel                        *widget.Label
+	showResourcesImprovementCheckbox *widget.Check
+	leftPropertiesBar                fyne.CanvasObject
+	tileProperties                   TileProperties
+	playerPropertiesBar              fyne.CanvasObject
+	cache                            *image.RGBA
+	cacheWidth, cacheHeight          int
 
 	// map properties
 	uri       string
@@ -40,8 +41,9 @@ type editor struct {
 	mapWidth  int
 	zoom      int
 
-	tileX int
-	tileY int
+	tileX           int
+	tileY           int
+	graphicsOptions mapdraw.GraphicsOptions
 
 	win        fyne.Window
 	recentMenu *fyne.Menu
@@ -143,7 +145,7 @@ func fixEncoding(img image.Image) *image.RGBA {
 	return newImg
 }
 
-func (e *editor) LoadFile(read fyne.URIReadCloser) {
+func (edit *editor) LoadFile(read fyne.URIReadCloser) {
 	defer read.Close()
 
 	inputFilename := read.URI().String()[7:]
@@ -153,26 +155,26 @@ func (e *editor) LoadFile(read fyne.URIReadCloser) {
 	saveFileData, err := fileio.ReadPolytopiaDecompressedFile(inputFilename + ".decomp")
 	if err != nil {
 		fyne.LogError("Failed to read input file: ", err)
-		e.status.SetText(err.Error())
+		edit.status.SetText(err.Error())
 		return
 	}
 
-	img := mapdraw.DrawMap(saveFileData, e.tileX, e.tileY)
+	img := getNewImage(edit, saveFileData)
 
-	e.addRecent(read.URI())
-	e.uri = read.URI().String()
-	e.img = fixEncoding(img)
-	e.mapData = saveFileData
-	e.mapHeight = len(saveFileData.TileData)
-	e.mapWidth = len(saveFileData.TileData[0])
-	e.status.SetText(fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d",
-		filepath.Base(read.URI().String()), e.mapHeight, e.mapWidth))
-	e.tileProperties.UpdateOwnerOptions(e)
+	edit.addRecent(read.URI())
+	edit.uri = read.URI().String()
+	edit.img = fixEncoding(img)
+	edit.mapData = saveFileData
+	edit.mapHeight = len(saveFileData.TileData)
+	edit.mapWidth = len(saveFileData.TileData[0])
+	edit.status.SetText(fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d",
+		filepath.Base(read.URI().String()), edit.mapHeight, edit.mapWidth))
+	edit.tileProperties.UpdateOwnerOptions(edit)
 
-	content := e.createContainer()
-	e.win.SetContent(content)
+	content := edit.createContainer()
+	edit.win.SetContent(content)
 
-	e.updateSizes()
+	edit.updateSizes()
 }
 
 func (e *editor) Reload() {
@@ -277,19 +279,54 @@ func newLeftPropertiesBar(edit *editor) fyne.CanvasObject {
 			edit.updateZoom(edit.zoom * 2)
 		}))
 
+	graphicsOptionsResourcesImprovements := container.NewVBox(
+		widget.NewCheck("Show resources and improvements", func(value bool) {
+			edit.graphicsOptions.ShowResourcesImprovements = value
+			if edit.mapData != nil {
+				edit.refreshMapImage()
+			}
+		}),
+		widget.NewCheck("Show roads", func(value bool) {
+			edit.graphicsOptions.ShowRoads = value
+			if edit.mapData != nil {
+				edit.refreshMapImage()
+			}
+		}),
+		widget.NewCheck("Show units", func(value bool) {
+			edit.graphicsOptions.ShowUnits = value
+			if edit.mapData != nil {
+				edit.refreshMapImage()
+			}
+		}),
+	)
+
 	options := append([]fyne.CanvasObject{
 		container.NewGridWithColumns(1),
 		zoom,
+		graphicsOptionsResourcesImprovements,
 	})
 	options = append(options, edit.tileProperties.GetOptions()...)
 
-	return container.NewVBox(options...)
+	return container.NewVScroll(container.NewVBox(options...))
 }
 
 func (edit *editor) refreshMapImage() {
-	img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+	img := getUpdatedImage(edit)
 	edit.img = fixEncoding(img)
 	edit.updateSizes()
+}
+
+func getNewImage(edit *editor, newMapData *fileio.PolytopiaSaveOutput) image.Image {
+	return mapdraw.DrawMap(
+		newMapData,
+		edit.tileX,
+		edit.tileY,
+		edit.graphicsOptions,
+	)
+}
+
+func getUpdatedImage(edit *editor) image.Image {
+	return getNewImage(edit, edit.mapData)
 }
 
 // NewEditor creates a new pixel editor that is ready to have a file loaded
@@ -300,6 +337,11 @@ func NewEditor() api.Editor {
 		status:    widget.NewLabel("Open a file"),
 		tileX:     -1,
 		tileY:     -1,
+		graphicsOptions: mapdraw.GraphicsOptions{
+			ShowResourcesImprovements: false,
+			ShowRoads:                 false,
+			ShowUnits:                 false,
+		},
 	}
 	edit.drawSurface = newInteractiveRaster(edit)
 	edit.tileProperties = NewTileProperties(edit)

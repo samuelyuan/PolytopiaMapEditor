@@ -34,7 +34,7 @@ func createPlayerTribeSelect(edit *editor, playerIndex int) *widget.Select {
 		}
 		edit.mapData.PlayerData[playerIndex].Tribe = optionInt
 
-		img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+		img := getUpdatedImage(edit)
 		edit.img = fixEncoding(img)
 		edit.updateSizes()
 	}
@@ -77,7 +77,7 @@ func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor 
 			newColorR, newColorG, newColorB, _ := newColor.RGBA()
 			edit.mapData.PlayerData[playerIndex].OverrideColor = []int{int(newColorB >> 8), int(newColorG >> 8), int(newColorR >> 8), 0}
 
-			img := mapdraw.DrawMap(edit.mapData, edit.tileX, edit.tileY)
+			img := getUpdatedImage(edit)
 			edit.img = fixEncoding(img)
 			edit.updateSizes()
 		}, edit.win)
