@@ -167,8 +167,8 @@ func (edit *editor) LoadFile(read fyne.URIReadCloser) {
 	edit.mapData = saveFileData
 	edit.mapHeight = len(saveFileData.TileData)
 	edit.mapWidth = len(saveFileData.TileData[0])
-	edit.status.SetText(fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d",
-		filepath.Base(read.URI().String()), edit.mapHeight, edit.mapWidth))
+	edit.status.SetText(fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d | Game Version: %d",
+		filepath.Base(read.URI().String()), edit.mapHeight, edit.mapWidth, edit.mapData.GameVersion))
 	edit.tileProperties.UpdateOwnerOptions(edit)
 
 	content := edit.createContainer()
