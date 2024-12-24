@@ -10,8 +10,8 @@ import (
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
-	"github.com/samuelyuan/PolytopiaMapEditor/internal/fileio"
 	"golang.org/x/image/font/gofont/goregular"
+	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
 
 const (
@@ -77,7 +77,7 @@ func getPhysicalMapTileColor(terrain int) color.RGBA {
 	return color.RGBA{0, 0, 0, 255}
 }
 
-func getPoliticalMapTileColor(saveData *fileio.PolytopiaSaveOutput, row int, column int, owner int) color.RGBA {
+func getPoliticalMapTileColor(saveData *polytopiamapmodel.PolytopiaSaveOutput, row int, column int, owner int) color.RGBA {
 	for i := 0; i < len(saveData.PlayerData); i++ {
 		playerData := saveData.PlayerData[i]
 		if playerData.PlayerId == owner {
@@ -88,7 +88,7 @@ func getPoliticalMapTileColor(saveData *fileio.PolytopiaSaveOutput, row int, col
 	return color.RGBA{128, 128, 128, 255}
 }
 
-func GetPlayerColor(playerData fileio.PlayerData) color.RGBA {
+func GetPlayerColor(playerData polytopiamapmodel.PlayerData) color.RGBA {
 	if playerData.OverrideColor[3] != 255 {
 		return color.RGBA{uint8(playerData.OverrideColor[2]), uint8(playerData.OverrideColor[1]), uint8(playerData.OverrideColor[0]), 255}
 	}
@@ -206,7 +206,7 @@ func drawUnitIcon(dc *gg.Context, imageX float64, imageY float64, unitColor colo
 
 func drawTerritoryTiles(
 	dc *gg.Context,
-	saveData *fileio.PolytopiaSaveOutput,
+	saveData *polytopiamapmodel.PolytopiaSaveOutput,
 	mapHeight int,
 	mapWidth int,
 	graphicsOptions GraphicsOptions,
@@ -267,7 +267,7 @@ func drawTerritoryTiles(
 	}
 }
 
-func drawRoads(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
+func drawRoads(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
 	// Draw roads between tiles
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
@@ -325,7 +325,7 @@ func drawRoads(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight i
 	}
 }
 
-func drawBorders(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
+func drawBorders(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
 			x1, y1 := getImagePosition(i, j)
@@ -366,7 +366,7 @@ func drawBorders(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight
 	dc.SetLineWidth(1.0)
 }
 
-func drawCityNames(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
+func drawCityNames(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
 	dc.SetRGB255(255, 255, 255)
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
@@ -392,7 +392,7 @@ func drawCityNames(dc *gg.Context, saveData *fileio.PolytopiaSaveOutput, mapHeig
 }
 
 func DrawMap(
-	saveData *fileio.PolytopiaSaveOutput,
+	saveData *polytopiamapmodel.PolytopiaSaveOutput,
 	highlightedTileX int,
 	highlightedTileY int,
 	graphicsOptions GraphicsOptions,

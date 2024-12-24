@@ -4,7 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 
-	"github.com/samuelyuan/PolytopiaMapEditor/internal/fileio"
+	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
 
 const (
@@ -145,7 +145,7 @@ func (edit *editor) UnlockAllTechForPlayer(newTribe int) {
 }
 
 func (edit *editor) CompleteAllTasksForPlayer(newTribe int) {
-	allTasksUnlocked := []fileio.PlayerTaskData{
+	allTasksUnlocked := []polytopiamapmodel.PlayerTaskData{
 		{
 			Type:   1, // Pacifist
 			Buffer: []int{1, 1, 5, 0, 0, 0},

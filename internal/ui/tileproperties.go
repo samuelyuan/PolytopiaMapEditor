@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/samuelyuan/PolytopiaMapEditor/internal/fileio"
+	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
 
 type TileProperties struct {
@@ -141,7 +141,7 @@ func createImprovementSelect(edit *editor) *widget.Select {
 			log.Fatal(err)
 		}
 		if edit.mapData.TileData[edit.tileY][edit.tileX].ImprovementData == nil {
-			edit.mapData.TileData[edit.tileY][edit.tileX].ImprovementData = &fileio.ImprovementData{
+			edit.mapData.TileData[edit.tileY][edit.tileX].ImprovementData = &polytopiamapmodel.ImprovementData{
 				Level:                  1,
 				FoundedTurn:            edit.mapData.MaxTurn,
 				CurrentPopulation:      0,
@@ -350,7 +350,7 @@ func createTileFloodedCheckbox(edit *editor) *widget.Check {
 	})
 }
 
-func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int, tile fileio.TileData) {
+func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int, tile polytopiamapmodel.TileData) {
 	tileProperties.tileCoordinatesProperties.SetText(fmt.Sprintf("Tile (%d, %d)", tileX, tileY))
 
 	tileProperties.tileOwnerSelect.SetSelectedIndex(tile.Owner)

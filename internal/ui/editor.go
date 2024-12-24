@@ -18,8 +18,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/samuelyuan/PolytopiaMapEditor/internal/api"
-	"github.com/samuelyuan/PolytopiaMapEditor/internal/fileio"
 	"github.com/samuelyuan/PolytopiaMapEditor/internal/mapdraw"
+	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
 
 type editor struct {
@@ -36,7 +36,7 @@ type editor struct {
 	// map properties
 	uri       string
 	img       *image.RGBA
-	mapData   *fileio.PolytopiaSaveOutput
+	mapData   *polytopiamapmodel.PolytopiaSaveOutput
 	mapHeight int
 	mapWidth  int
 	zoom      int
@@ -151,8 +151,8 @@ func (edit *editor) LoadFile(read fyne.URIReadCloser) {
 	inputFilename := read.URI().String()[7:]
 	fmt.Println("Input filename: ", inputFilename)
 
-	fileio.DecompressFile(inputFilename)
-	saveFileData, err := fileio.ReadPolytopiaDecompressedFile(inputFilename + ".decomp")
+	polytopiamapmodel.DecompressFile(inputFilename)
+	saveFileData, err := polytopiamapmodel.ReadPolytopiaDecompressedFile(inputFilename + ".decomp")
 	if err != nil {
 		fyne.LogError("Failed to read input file: ", err)
 		edit.status.SetText(err.Error())
@@ -196,15 +196,15 @@ func (edit *editor) WriteMapState() {
 	decompressedFilename := originalFilname + ".decomp"
 	outputFilename := originalFilname
 
-	fileInfo := fileio.FileInfo{
+	fileInfo := polytopiamapmodel.FileInfo{
 		InputFilename: decompressedFilename,
 		GameVersion:   int(edit.mapData.GameVersion),
 	}
-	fileio.WriteMapToFile(fileInfo, edit.mapData.TileData)
-	fileio.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData)
-	fileio.WriteMapHeaderToFile(decompressedFilename, edit.mapData.MapHeaderOutput)
+	polytopiamapmodel.WriteMapToFile(fileInfo, edit.mapData.TileData)
+	polytopiamapmodel.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData)
+	polytopiamapmodel.WriteMapHeaderToFile(decompressedFilename, edit.mapData.MapHeaderOutput)
 	fmt.Println("Exporting map to", outputFilename)
-	fileio.CompressFile(decompressedFilename, outputFilename)
+	polytopiamapmodel.CompressFile(decompressedFilename, outputFilename)
 }
 
 func (e *editor) Save() {
@@ -316,7 +316,7 @@ func (edit *editor) refreshMapImage() {
 	edit.updateSizes()
 }
 
-func getNewImage(edit *editor, newMapData *fileio.PolytopiaSaveOutput) image.Image {
+func getNewImage(edit *editor, newMapData *polytopiamapmodel.PolytopiaSaveOutput) image.Image {
 	return mapdraw.DrawMap(
 		newMapData,
 		edit.tileX,

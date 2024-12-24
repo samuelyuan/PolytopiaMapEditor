@@ -1,14 +1,12 @@
 module github.com/samuelyuan/PolytopiaMapEditor
 
-go 1.22.0
-
-toolchain go1.23.2
+go 1.23.2
 
 require (
 	fyne.io/fyne/v2 v2.5.2
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-	github.com/pierrec/lz4/v4 v4.1.21
+	github.com/pierrec/lz4/v4 v4.1.22
 	golang.org/x/image v0.22.0
 )
 
@@ -32,6 +30,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rymdport/portal v0.3.0 // indirect
+	github.com/samuelyuan/polytopiamapmodelgo v0.0.0-20241223194126-6c47827ea87a // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
