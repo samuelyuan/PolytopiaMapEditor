@@ -201,7 +201,7 @@ func (edit *editor) WriteMapState() {
 		GameVersion:   int(edit.mapData.GameVersion),
 	}
 	polytopiamapmodel.WriteMapToFile(fileInfo, edit.mapData.TileData)
-	polytopiamapmodel.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData)
+	polytopiamapmodel.WritePlayersToFile(decompressedFilename, edit.mapData.PlayerData, fileInfo.GameVersion)
 	polytopiamapmodel.WriteMapHeaderToFile(decompressedFilename, edit.mapData.MapHeaderOutput)
 	fmt.Println("Exporting map to", outputFilename)
 	polytopiamapmodel.CompressFile(decompressedFilename, outputFilename)
