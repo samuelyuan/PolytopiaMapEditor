@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"image/png"
 	"path/filepath"
 	"strings"
@@ -30,8 +29,6 @@ type editor struct {
 	leftPropertiesBar                fyne.CanvasObject
 	tileProperties                   TileProperties
 	playerPropertiesBar              fyne.CanvasObject
-	cache                            *image.RGBA
-	cacheWidth, cacheHeight          int
 
 	// map properties
 	uri       string
@@ -47,11 +44,6 @@ type editor struct {
 
 	win        fyne.Window
 	recentMenu *fyne.Menu
-}
-
-func colorToBytes(col color.Color) []uint8 {
-	r, g, b, a := col.RGBA()
-	return []uint8{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)}
 }
 
 func (e *editor) Clicked(x, y int, edit api.Editor) {
@@ -75,62 +67,25 @@ func (edit *editor) setZoom(zoom int) {
 	edit.drawSurface.Refresh()
 }
 
-func (edit *editor) draw(w, h int) image.Image {
-	if edit.cacheWidth == 0 || edit.cacheHeight == 0 {
-		return image.NewRGBA(image.Rect(0, 0, w, h))
-	}
-
-	if w > edit.cacheWidth || h > edit.cacheHeight {
-		bigger := image.NewRGBA(image.Rect(0, 0, w, h))
-		draw.Draw(bigger, edit.cache.Bounds(), edit.cache, image.Point{}, draw.Over)
-		return bigger
-	}
-
-	return edit.cache
-}
-
+// updateSizes pushes edit.img to the GPU-backed image widget and resizes it for the current zoom.
 func (e *editor) updateSizes() {
 	if e.img == nil {
 		return
 	}
-	e.cacheWidth = e.img.Bounds().Dx() * e.zoom
-	e.cacheHeight = e.img.Bounds().Dy() * e.zoom
+	physWidth := e.img.Bounds().Dx() * e.zoom
+	physHeight := e.img.Bounds().Dy() * e.zoom
 
 	c := fyne.CurrentApp().Driver().CanvasForObject(e.status)
 	scale := float32(1.0)
 	if c != nil {
 		scale = c.Scale()
 	}
+
+	e.drawSurface.img.Image = e.img
+	e.drawSurface.img.Refresh()
 	e.drawSurface.SetMinSize(fyne.NewSize(
-		float32(e.cacheWidth)/scale,
-		float32(e.cacheHeight)/scale))
-
-	e.renderCache()
-}
-
-func (e *editor) pixAt(x, y int) []uint8 {
-	ix := x / e.zoom
-	iy := y / e.zoom
-
-	if ix >= e.img.Bounds().Dx() || iy >= e.img.Bounds().Dy() {
-		return []uint8{0, 0, 0, 0}
-	}
-
-	return colorToBytes(e.img.At(ix, iy))
-}
-
-func (e *editor) renderCache() {
-	e.cache = image.NewRGBA(image.Rect(0, 0, e.cacheWidth, e.cacheHeight))
-	for y := 0; y < e.cacheHeight; y++ {
-		for x := 0; x < e.cacheWidth; x++ {
-			i := (y*e.cacheWidth + x) * 4
-			col := e.pixAt(x, y)
-			e.cache.Pix[i] = col[0]
-			e.cache.Pix[i+1] = col[1]
-			e.cache.Pix[i+2] = col[2]
-			e.cache.Pix[i+3] = col[3]
-		}
-	}
+		float32(physWidth)/scale,
+		float32(physHeight)/scale))
 
 	e.drawSurface.Refresh()
 }
@@ -300,11 +255,11 @@ func newLeftPropertiesBar(edit *editor) fyne.CanvasObject {
 		}),
 	)
 
-	options := append([]fyne.CanvasObject{
+	options := []fyne.CanvasObject{
 		container.NewGridWithColumns(1),
 		zoom,
 		graphicsOptionsResourcesImprovements,
-	})
+	}
 	options = append(options, edit.tileProperties.GetOptions()...)
 
 	return container.NewVScroll(container.NewVBox(options...))

@@ -90,10 +90,10 @@ func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor 
 }
 
 func newPlayerPropertiesBar(edit *editor) fyne.CanvasObject {
-	options := append([]fyne.CanvasObject{
+	options := []fyne.CanvasObject{
 		container.NewGridWithColumns(1),
 		widget.NewLabel("Players"),
-	})
+	}
 
 	if edit.mapData != nil {
 		for i := 0; i < len(edit.mapData.PlayerData); i++ {

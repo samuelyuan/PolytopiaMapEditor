@@ -14,19 +14,11 @@ type interactiveRaster struct {
 
 	edit *editor
 	min  fyne.Size
-	img  *canvas.Raster
+	img  *canvas.Image
 }
 
+// SetMinSize sets the widget's logical size; canvas.Image scales on the GPU so no scale correction is needed here.
 func (r *interactiveRaster) SetMinSize(size fyne.Size) {
-	pixWidth, _ := r.locationForPosition(fyne.NewPos(size.Width, size.Height))
-	scale := float32(1.0)
-	c := fyne.CurrentApp().Driver().CanvasForObject(r.img)
-	if c != nil {
-		scale = c.Scale()
-	}
-
-	texScale := float32(pixWidth) / size.Width * float32(r.edit.zoom) / scale
-	size = fyne.NewSize(size.Width/texScale, size.Height/texScale)
 	r.min = size
 	r.Resize(size)
 }
@@ -66,7 +58,11 @@ func (r *interactiveRaster) locationForPosition(pos fyne.Position) (int, int) {
 }
 
 func newInteractiveRaster(edit *editor) *interactiveRaster {
-	r := &interactiveRaster{img: canvas.NewRaster(edit.draw), edit: edit}
+	img := canvas.NewImageFromImage(nil)
+	img.ScaleMode = canvas.ImageScalePixels // nearest-neighbor, GPU-scaled
+	img.FillMode = canvas.ImageFillStretch
+
+	r := &interactiveRaster{img: img, edit: edit}
 	r.ExtendBaseWidget(r)
 	return r
 }
@@ -86,13 +82,14 @@ func bgPattern(x, y, _, _ int) color.Color {
 	return color.Gray{Y: 84}
 }
 
+// bg fills the full (possibly Scroll-enlarged) space; raster.img is clamped to its own min size so it's never GPU-stretched beyond native/zoomed resolution.
 func (r *rasterWidgetRender) Layout(size fyne.Size) {
 	r.bg.Resize(size)
-	r.raster.img.Resize(size)
+	r.raster.img.Resize(r.raster.min)
 }
 
 func (r *rasterWidgetRender) MinSize() fyne.Size {
-	return r.MinSize()
+	return r.raster.MinSize()
 }
 
 func (r *rasterWidgetRender) Refresh() {

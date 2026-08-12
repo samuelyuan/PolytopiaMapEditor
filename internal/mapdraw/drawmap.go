@@ -6,10 +6,12 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
@@ -17,6 +19,23 @@ import (
 const (
 	radius = 30.0
 )
+
+// Parse the embedded font once and reuse the face instead of re-parsing on every DrawMap call.
+var (
+	fontFaceOnce sync.Once
+	fontFace     font.Face
+)
+
+func getMapFontFace() font.Face {
+	fontFaceOnce.Do(func() {
+		parsedFont, err := truetype.Parse(goregular.TTF)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fontFace = truetype.NewFace(parsedFont, &truetype.Options{Size: 14})
+	})
+	return fontFace
+}
 
 var (
 	NeighborOffset              = [4][2]int{{0, 1}, {-1, 0}, {0, -1}, {1, 0}}
@@ -77,14 +96,20 @@ func getPhysicalMapTileColor(terrain int) color.RGBA {
 	return color.RGBA{0, 0, 0, 255}
 }
 
-func getPoliticalMapTileColor(saveData *polytopiamapmodel.PolytopiaSaveOutput, row int, column int, owner int) color.RGBA {
+// buildPlayerColorMap precomputes owner -> color once per DrawMap call for O(1) tile lookups.
+func buildPlayerColorMap(saveData *polytopiamapmodel.PolytopiaSaveOutput) map[int]color.RGBA {
+	colors := make(map[int]color.RGBA, len(saveData.PlayerData))
 	for i := 0; i < len(saveData.PlayerData); i++ {
 		playerData := saveData.PlayerData[i]
-		if playerData.PlayerId == owner {
-			return GetPlayerColor(playerData)
-		}
+		colors[playerData.PlayerId] = GetPlayerColor(playerData)
 	}
+	return colors
+}
 
+func lookupPlayerColor(playerColors map[int]color.RGBA, owner int) color.RGBA {
+	if col, ok := playerColors[owner]; ok {
+		return col
+	}
 	return color.RGBA{128, 128, 128, 255}
 }
 
@@ -210,6 +235,7 @@ func drawTerritoryTiles(
 	mapHeight int,
 	mapWidth int,
 	graphicsOptions GraphicsOptions,
+	playerColors map[int]color.RGBA,
 ) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
@@ -236,7 +262,7 @@ func drawTerritoryTiles(
 					// City icon
 					if tileData.Owner > 0 {
 						// Capital city
-						cityColor := getPoliticalMapTileColor(saveData, i, j, saveData.TileData[i][j].Owner)
+						cityColor := lookupPlayerColor(playerColors, tileData.Owner)
 						drawCityIcon(dc, x, y, cityColor)
 					} else {
 						// Village
@@ -259,7 +285,7 @@ func drawTerritoryTiles(
 
 			if graphicsOptions.ShowUnits {
 				if tileData.Unit != nil {
-					cityColor := getPoliticalMapTileColor(saveData, i, j, int(tileData.Unit.Owner))
+					cityColor := lookupPlayerColor(playerColors, int(tileData.Unit.Owner))
 					drawUnitIcon(dc, x, y, cityColor)
 				}
 			}
@@ -325,7 +351,7 @@ func drawRoads(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, 
 	}
 }
 
-func drawBorders(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
+func drawBorders(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int, playerColors map[int]color.RGBA) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
 			x1, y1 := getImagePosition(i, j)
@@ -335,7 +361,7 @@ func drawBorders(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput
 				continue
 			}
 
-			tileColor := getPoliticalMapTileColor(saveData, i, j, saveData.TileData[i][j].Owner)
+			tileColor := lookupPlayerColor(playerColors, currentTileOwner)
 			lineWidth := 1.5
 			for n := 0; n < len(neighbors); n++ {
 				newX := neighbors[n][0]
@@ -402,23 +428,17 @@ func DrawMap(
 
 	maxImageWidth, maxImageHeight := getImagePosition(mapHeight, mapWidth)
 	dc := gg.NewContext(int(maxImageWidth), int(maxImageHeight))
-
-	font, err := truetype.Parse(goregular.TTF)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	face := truetype.NewFace(font, &truetype.Options{Size: 14})
-	dc.SetFontFace(face)
+	dc.SetFontFace(getMapFontFace())
 
 	// Need to invert image because the map format is inverted
 	dc.InvertY()
 
-	drawTerritoryTiles(dc, saveData, mapHeight, mapWidth, graphicsOptions)
+	playerColors := buildPlayerColorMap(saveData)
+	drawTerritoryTiles(dc, saveData, mapHeight, mapWidth, graphicsOptions, playerColors)
 	if graphicsOptions.ShowRoads {
 		drawRoads(dc, saveData, mapHeight, mapWidth)
 	}
-	drawBorders(dc, saveData, mapHeight, mapWidth)
+	drawBorders(dc, saveData, mapHeight, mapWidth, playerColors)
 
 	// draw highlighted tile
 	if highlightedTileX != -1 && highlightedTileY != -1 {
