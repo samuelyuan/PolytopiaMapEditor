@@ -76,14 +76,7 @@ func (edit *editor) RevealAllTilesForPlayer(newTribe int) {
 	for i := 0; i < edit.mapData.MapHeight; i++ {
 		for j := 0; j < edit.mapData.MapWidth; j++ {
 			visibilityData := edit.mapData.TileData[i][j].PlayerVisibility
-			isAlreadyVisible := false
-			for visibilityIndex := 0; visibilityIndex < len(visibilityData); visibilityIndex++ {
-				if int(visibilityData[visibilityIndex]) == newTribe {
-					isAlreadyVisible = true
-					break
-				}
-			}
-			if !isAlreadyVisible {
+			if !containsInt(visibilityData, newTribe) {
 				edit.mapData.TileData[i][j].PlayerVisibility = append(edit.mapData.TileData[i][j].PlayerVisibility, newTribe)
 			}
 		}

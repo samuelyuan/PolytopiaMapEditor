@@ -3,8 +3,6 @@ package ui
 import (
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -55,25 +53,12 @@ func createTerrainSelect(edit *editor) *widget.Select {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
 		}
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].Terrain = optionInt
-
-		altitude := 0
-		switch optionInt {
-		case 1:
-			altitude = -1 // water altitude is -1
-		case 2:
-			altitude = -2 // ocean altitude is -2
-		case 3:
-		case 5:
-			altitude = 1 // flat tile altitude is 1
-		case 4:
-			altitude = 2 // mountain altitude is 2
-		}
-		edit.mapData.TileData[edit.tileY][edit.tileX].Altitude = altitude
+		edit.mapData.TileData[edit.tileY][edit.tileX].Altitude = terrainToAltitude(optionInt)
 
 		edit.refreshMapImage()
 	}
@@ -86,7 +71,7 @@ func createClimateSelect(edit *editor) *widget.Select {
 		if edit.tileX == -1 || edit.tileY == -1 {
 			return
 		}
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,7 +95,7 @@ func createResourceSelect(edit *editor) *widget.Select {
 			return
 		}
 
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -136,7 +121,7 @@ func createImprovementSelect(edit *editor) *widget.Select {
 			return
 		}
 
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -171,13 +156,7 @@ func createImprovementSelect(edit *editor) *widget.Select {
 func createTileOwnerSelect(edit *editor) *widget.Select {
 	options := []string{"None"}
 	if edit.mapData != nil {
-		for i := 0; i < len(edit.mapData.PlayerData); i++ {
-			playerData := edit.mapData.PlayerData[i]
-			if playerData.PlayerId == 255 {
-				continue
-			}
-			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.PlayerId, playerData.Name))
-		}
+		options = buildPlayerOwnerOptions(edit.mapData.PlayerData)
 	}
 
 	changeFunc := func(s string) {
@@ -190,7 +169,7 @@ func createTileOwnerSelect(edit *editor) *widget.Select {
 			return
 		}
 
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[1])
+		optionInt, err := parsePlayerOptionId(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -242,13 +221,7 @@ func createCityTileCoordinatesEntry(edit *editor) *widget.Entry {
 func createUnitOwnerSelect(edit *editor) *widget.Select {
 	options := []string{"None"}
 	if edit.mapData != nil {
-		for i := 0; i < len(edit.mapData.PlayerData); i++ {
-			playerData := edit.mapData.PlayerData[i]
-			if playerData.PlayerId == 255 {
-				continue
-			}
-			options = append(options, fmt.Sprintf("Player %d (%s)", playerData.PlayerId, playerData.Name))
-		}
+		options = buildPlayerOwnerOptions(edit.mapData.PlayerData)
 	}
 
 	changeFunc := func(s string) {
@@ -268,7 +241,7 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 			return
 		}
 
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[1])
+		optionInt, err := parsePlayerOptionId(s)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -299,7 +272,7 @@ func createUnitTypeSelect(edit *editor) *widget.Select {
 			return
 		}
 
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}

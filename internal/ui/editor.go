@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/png"
 	"path/filepath"
-	"strings"
 
 	"golang.org/x/image/draw"
 
@@ -201,26 +200,34 @@ func (e *editor) isSupported(path string) bool {
 }
 
 func (e *editor) isPNG(path string) bool {
-	return strings.LastIndex(strings.ToLower(path), "png") == len(path)-3
+	return isPNGPath(path)
 }
 
 func (edit *editor) updateZoom(val int) {
-	if val < 1 {
-		val = 1
-	} else if val > 16 {
-		val = 16
-	}
-	edit.setZoom(val)
+	edit.setZoom(clampZoom(val))
 	edit.zoomLabel.SetText(fmt.Sprintf("%d%%", edit.zoom*100))
 }
+
+// Default split offsets for the property panel dividers.
+const (
+	leftPanelDefaultOffset  = 0.2
+	rightPanelDefaultOffset = 0.8
+)
 
 func (edit *editor) createContainer() fyne.CanvasObject {
 	toolbar := buildToolbar(edit)
 	edit.leftPropertiesBar = newLeftPropertiesBar(edit)
 	edit.playerPropertiesBar = newPlayerPropertiesBar(edit)
+
+	mapAndRightSplit := container.NewHSplit(edit.buildUI(), edit.playerPropertiesBar)
+	mapAndRightSplit.SetOffset(rightPanelDefaultOffset)
+
+	leftAndRestSplit := container.NewHSplit(edit.leftPropertiesBar, mapAndRightSplit)
+	leftAndRestSplit.SetOffset(leftPanelDefaultOffset)
+
 	return fyne.NewContainerWithLayout(
-		layout.NewBorderLayout(toolbar, edit.status, edit.leftPropertiesBar, edit.playerPropertiesBar),
-		toolbar, edit.status, edit.leftPropertiesBar, edit.buildUI(), edit.playerPropertiesBar,
+		layout.NewBorderLayout(toolbar, edit.status, nil, nil),
+		toolbar, edit.status, leftAndRestSplit,
 	)
 }
 
@@ -262,7 +269,8 @@ func newLeftPropertiesBar(edit *editor) fyne.CanvasObject {
 	}
 	options = append(options, edit.tileProperties.GetOptions()...)
 
-	return container.NewVScroll(container.NewVBox(options...))
+	// NewScroll (not NewVScroll) so the panel can be narrowed via the split divider.
+	return container.NewScroll(container.NewVBox(options...))
 }
 
 func (edit *editor) refreshMapImage() {

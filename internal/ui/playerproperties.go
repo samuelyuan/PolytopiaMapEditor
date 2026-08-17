@@ -50,12 +50,8 @@ func createPlayerCurrencyEntry(edit *editor, playerIndex int, playerCurrency int
 			entry.SetText(fmt.Sprintf("%v", playerCurrency))
 			return
 		}
-		if currencyInt < 0 {
-			currencyInt = 0
-			entry.SetText(fmt.Sprintf("%v", currencyInt))
-		} else if currencyInt > 2147483647 {
-			// no overflow for max uint32
-			currencyInt = 2147483647
+		if clamped := clampCurrency(currencyInt); clamped != currencyInt {
+			currencyInt = clamped
 			entry.SetText(fmt.Sprintf("%v", currencyInt))
 		}
 		edit.mapData.PlayerData[playerIndex].Currency = currencyInt
@@ -74,8 +70,7 @@ func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor 
 	playerColor := mapdraw.GetPlayerColor(edit.mapData.PlayerData[playerIndex])
 	colorPickerButton := widget.NewButton("Edit", func() {
 		picker := dialog.NewColorPicker("Pick a Color", "Please pick tribe color:", func(newColor color.Color) {
-			newColorR, newColorG, newColorB, _ := newColor.RGBA()
-			edit.mapData.PlayerData[playerIndex].OverrideColor = []int{int(newColorB >> 8), int(newColorG >> 8), int(newColorR >> 8), 0}
+			edit.mapData.PlayerData[playerIndex].OverrideColor = overrideColorFromRGBA(newColor)
 
 			img := getUpdatedImage(edit)
 			edit.img = fixEncoding(img)
@@ -119,5 +114,6 @@ func newPlayerPropertiesBar(edit *editor) fyne.CanvasObject {
 			}...)
 		}
 	}
-	return container.NewVScroll(container.NewVBox(options...))
+	// NewScroll (not NewVScroll) so the panel can be narrowed via the split divider.
+	return container.NewScroll(container.NewVBox(options...))
 }

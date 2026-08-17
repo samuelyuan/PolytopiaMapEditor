@@ -28,12 +28,7 @@ func (e *editor) loadRecent() []fyne.URI {
 
 func (e *editor) addRecent(u fyne.URI) {
 	pref := fyne.CurrentApp().Preferences()
-	recent := e.loadRecent()
-
-	recent = append([]fyne.URI{u}, recent...)
-	if len(recent) > 5 {
-		recent = recent[:5]
-	}
+	recent := pushRecent(e.loadRecent(), u, 5)
 
 	pref.SetInt(recentCountKey, len(recent))
 	for i, uri := range recent {
