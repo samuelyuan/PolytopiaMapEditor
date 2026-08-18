@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"log"
 	"strconv"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -28,15 +27,13 @@ func createPlayerNameEntry(edit *editor, playerIndex int, playerName string) *wi
 func createPlayerTribeSelect(edit *editor, playerIndex int) *widget.Select {
 	options := getPlayerTribeOptions()
 	changeFunc := func(s string) {
-		optionInt, err := strconv.Atoi(strings.Split(s, " ")[0])
+		optionInt, err := parseLeadingInt(s)
 		if err != nil {
 			log.Fatal(err)
 		}
 		edit.mapData.PlayerData[playerIndex].Tribe = optionInt
 
-		img := getUpdatedImage(edit)
-		edit.img = fixEncoding(img)
-		edit.updateSizes()
+		edit.refreshMapImage()
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -72,9 +69,7 @@ func createPlayerColorPickerButton(edit *editor, playerIndex int, overrideColor 
 		picker := dialog.NewColorPicker("Pick a Color", "Please pick tribe color:", func(newColor color.Color) {
 			edit.mapData.PlayerData[playerIndex].OverrideColor = overrideColorFromRGBA(newColor)
 
-			img := getUpdatedImage(edit)
-			edit.img = fixEncoding(img)
-			edit.updateSizes()
+			edit.refreshMapImage()
 		}, edit.win)
 		picker.Advanced = true
 		picker.SetColor(playerColor)

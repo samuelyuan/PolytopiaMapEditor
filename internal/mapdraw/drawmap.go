@@ -239,157 +239,177 @@ func drawTerritoryTiles(
 ) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
-			x, y := getImagePosition(i, j)
+			drawSingleTerritoryTile(dc, saveData, i, j, graphicsOptions, playerColors)
+		}
+	}
+}
 
-			dc.DrawRectangle(x, y, radius, radius)
-			tileData := saveData.TileData[i][j]
-			terrain := tileData.Terrain
+// drawSingleTerritoryTile draws terrain and icons for one tile; split out so a future single-tile redraw can call it directly.
+func drawSingleTerritoryTile(
+	dc *gg.Context,
+	saveData *polytopiamapmodel.PolytopiaSaveOutput,
+	i, j int,
+	graphicsOptions GraphicsOptions,
+	playerColors map[int]color.RGBA,
+) {
+	x, y := getImagePosition(i, j)
 
-			terrainTileColor := getPhysicalMapTileColor(terrain)
-			dc.SetRGB255(int(terrainTileColor.R), int(terrainTileColor.G), int(terrainTileColor.B))
-			dc.Fill()
+	dc.DrawRectangle(x, y, radius, radius)
+	tileData := saveData.TileData[i][j]
+	terrain := tileData.Terrain
 
-			if terrain == 4 {
-				drawMountain(dc, x, y)
-			} else if terrain == 5 {
-				drawForest(dc, x, y)
-			} else if terrain == 6 {
-				drawIce(dc, x, y)
+	terrainTileColor := getPhysicalMapTileColor(terrain)
+	dc.SetRGB255(int(terrainTileColor.R), int(terrainTileColor.G), int(terrainTileColor.B))
+	dc.Fill()
+
+	if terrain == 4 {
+		drawMountain(dc, x, y)
+	} else if terrain == 5 {
+		drawForest(dc, x, y)
+	} else if terrain == 6 {
+		drawIce(dc, x, y)
+	}
+
+	if tileData.ImprovementData != nil {
+		if tileData.ImprovementType == 1 {
+			// City icon
+			if tileData.Owner > 0 {
+				// Capital city
+				cityColor := lookupPlayerColor(playerColors, tileData.Owner)
+				drawCityIcon(dc, x, y, cityColor)
+			} else {
+				// Village
+				drawCityIcon(dc, x, y, color.RGBA{255, 255, 255, 255})
 			}
-
-			if tileData.ImprovementData != nil {
-				if tileData.ImprovementType == 1 {
-					// City icon
-					if tileData.Owner > 0 {
-						// Capital city
-						cityColor := lookupPlayerColor(playerColors, tileData.Owner)
-						drawCityIcon(dc, x, y, cityColor)
-					} else {
-						// Village
-						drawCityIcon(dc, x, y, color.RGBA{255, 255, 255, 255})
-					}
-				} else if graphicsOptions.ShowResourcesImprovements {
-					if tileData.ImprovementType == 8 {
-						drawPortIcon(dc, x, y)
-					} else {
-						drawImprovementIcon(dc, x, y)
-					}
-				}
+		} else if graphicsOptions.ShowResourcesImprovements {
+			if tileData.ImprovementType == 8 {
+				drawPortIcon(dc, x, y)
+			} else {
+				drawImprovementIcon(dc, x, y)
 			}
+		}
+	}
 
-			if graphicsOptions.ShowResourcesImprovements {
-				if tileData.ResourceExists {
-					drawResourcesIcon(dc, x, y)
-				}
-			}
+	if graphicsOptions.ShowResourcesImprovements {
+		if tileData.ResourceExists {
+			drawResourcesIcon(dc, x, y)
+		}
+	}
 
-			if graphicsOptions.ShowUnits {
-				if tileData.Unit != nil {
-					cityColor := lookupPlayerColor(playerColors, int(tileData.Unit.Owner))
-					drawUnitIcon(dc, x, y, cityColor)
-				}
-			}
+	if graphicsOptions.ShowUnits {
+		if tileData.Unit != nil {
+			cityColor := lookupPlayerColor(playerColors, int(tileData.Unit.Owner))
+			drawUnitIcon(dc, x, y, cityColor)
 		}
 	}
 }
 
 func drawRoads(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {
-	// Draw roads between tiles
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
-			x1, y1 := getImagePosition(i, j)
+			drawRoadsForTile(dc, saveData, mapHeight, mapWidth, i, j)
+		}
+	}
+}
 
-			tileData := saveData.TileData[i][j]
-			tileHasCity := (tileData.ImprovementData != nil && tileData.ImprovementType == 1)
-			if !tileData.HasRoad && !tileHasCity {
-				continue
-			}
+// drawRoadsForTile draws tile (i, j)'s road segments; depends on up to 8 neighbors, so a future redraw must also re-run for them.
+func drawRoadsForTile(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight, mapWidth, i, j int) {
+	x1, y1 := getImagePosition(i, j)
 
-			neighbors := getNeighborsWithDiagonals(j, i)
-			hasNeighborWithRoad := false
-			for n := 0; n < len(neighbors); n++ {
-				newX := neighbors[n][0]
-				newY := neighbors[n][1]
-				if newX >= 0 && newY >= 0 && newX < mapWidth && newY < mapHeight {
-					neighborTile := saveData.TileData[newY][newX]
-					neighborHasCity := (neighborTile.ImprovementData != nil && neighborTile.ImprovementType == 1)
-					neighborHasPort := (neighborTile.ImprovementData != nil && neighborTile.ImprovementType == 8)
-					// Only connect to neighbor if it has road or a city
-					if neighborTile.HasRoad || neighborHasCity || neighborHasPort {
-						x2, y2 := getImagePosition(newY, newX)
-						hasNeighborWithRoad = true
+	tileData := saveData.TileData[i][j]
+	tileHasCity := (tileData.ImprovementData != nil && tileData.ImprovementType == 1)
+	if !tileData.HasRoad && !tileHasCity {
+		return
+	}
 
-						// Road
-						dc.SetLineWidth(1.0)
-						dc.SetRGB255(51, 51, 51)
+	neighbors := getNeighborsWithDiagonals(j, i)
+	hasNeighborWithRoad := false
+	for n := 0; n < len(neighbors); n++ {
+		newX := neighbors[n][0]
+		newY := neighbors[n][1]
+		if newX >= 0 && newY >= 0 && newX < mapWidth && newY < mapHeight {
+			neighborTile := saveData.TileData[newY][newX]
+			neighborHasCity := (neighborTile.ImprovementData != nil && neighborTile.ImprovementType == 1)
+			neighborHasPort := (neighborTile.ImprovementData != nil && neighborTile.ImprovementType == 8)
+			// Only connect to neighbor if it has road or a city
+			if neighborTile.HasRoad || neighborHasCity || neighborHasPort {
+				x2, y2 := getImagePosition(newY, newX)
+				hasNeighborWithRoad = true
 
-						// Draw road between two tile centers
-						center1X := x1 + (radius / 2)
-						center1Y := y1 + (radius / 2)
-						center2X := x2 + (radius / 2)
-						center2Y := y2 + (radius / 2)
-						borderX := (center1X + center2X) / 2.0
-						borderY := (center1Y + center2Y) / 2.0
+				// Road
+				dc.SetLineWidth(1.0)
+				dc.SetRGB255(51, 51, 51)
 
-						if neighborHasPort {
-							dc.DrawLine(center1X, center1Y, borderX, borderY)
-							dc.Stroke()
-						} else {
-							dc.DrawLine(center1X, center1Y, center2X, center2Y)
-							dc.Stroke()
-						}
-					}
+				// Draw road between two tile centers
+				center1X := x1 + (radius / 2)
+				center1Y := y1 + (radius / 2)
+				center2X := x2 + (radius / 2)
+				center2Y := y2 + (radius / 2)
+				borderX := (center1X + center2X) / 2.0
+				borderY := (center1Y + center2Y) / 2.0
+
+				if neighborHasPort {
+					dc.DrawLine(center1X, center1Y, borderX, borderY)
+					dc.Stroke()
+				} else {
+					dc.DrawLine(center1X, center1Y, center2X, center2Y)
+					dc.Stroke()
 				}
 			}
-
-			// Draw road within tile to show that tile has road
-			if tileData.HasRoad && !hasNeighborWithRoad {
-				dc.DrawLine(x1, y1+(radius/2), x1+radius, y1+(radius/2))
-				dc.Stroke()
-			}
 		}
+	}
+
+	// Draw road within tile to show that tile has road
+	if tileData.HasRoad && !hasNeighborWithRoad {
+		dc.DrawLine(x1, y1+(radius/2), x1+radius, y1+(radius/2))
+		dc.Stroke()
 	}
 }
 
 func drawBorders(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int, playerColors map[int]color.RGBA) {
 	for i := 0; i < mapHeight; i++ {
 		for j := 0; j < mapWidth; j++ {
-			x1, y1 := getImagePosition(i, j)
-			neighbors := getNeighbors(j, i)
-			currentTileOwner := saveData.TileData[i][j].Owner
-			if currentTileOwner == 0 {
-				continue
-			}
-
-			tileColor := lookupPlayerColor(playerColors, currentTileOwner)
-			lineWidth := 1.5
-			for n := 0; n < len(neighbors); n++ {
-				newX := neighbors[n][0]
-				newY := neighbors[n][1]
-				if newX >= 0 && newY >= 0 && newX < mapWidth && newY < mapHeight {
-					otherTileOwner := saveData.TileData[newY][newX].Owner
-					if currentTileOwner != otherTileOwner {
-						angle1 := (math.Pi / 4) + float64(n)*(math.Pi/2)
-						angle2 := (math.Pi / 4) + float64(n+1)*(math.Pi/2)
-
-						centerX := x1 + (radius / 2)
-						centerY := y1 + (radius / 2)
-
-						edgeX1 := centerX + ((radius-1)*math.Sqrt2/2)*math.Cos(angle1)
-						edgeY1 := centerY + ((radius-1)*math.Sqrt2/2)*math.Sin(angle1)
-						edgeX2 := centerX + ((radius-1)*math.Sqrt2/2)*math.Cos(angle2)
-						edgeY2 := centerY + ((radius-1)*math.Sqrt2/2)*math.Sin(angle2)
-
-						dc.SetRGB255(int(tileColor.R), int(tileColor.G), int(tileColor.B))
-						dc.SetLineWidth(lineWidth)
-						dc.DrawLine(edgeX1, edgeY1, edgeX2, edgeY2)
-						dc.Stroke()
-					}
-				}
-			}
+			drawBordersForTile(dc, saveData, mapHeight, mapWidth, playerColors, i, j)
 		}
 	}
 	dc.SetLineWidth(1.0)
+}
+
+// drawBordersForTile draws tile (i, j)'s borders; depends on its 4 orthogonal neighbors, so a future redraw must also re-run for them.
+func drawBordersForTile(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight, mapWidth int, playerColors map[int]color.RGBA, i, j int) {
+	x1, y1 := getImagePosition(i, j)
+	neighbors := getNeighbors(j, i)
+	currentTileOwner := saveData.TileData[i][j].Owner
+	if currentTileOwner == 0 {
+		return
+	}
+
+	tileColor := lookupPlayerColor(playerColors, currentTileOwner)
+	lineWidth := 1.5
+	for n := 0; n < len(neighbors); n++ {
+		newX := neighbors[n][0]
+		newY := neighbors[n][1]
+		if newX >= 0 && newY >= 0 && newX < mapWidth && newY < mapHeight {
+			otherTileOwner := saveData.TileData[newY][newX].Owner
+			if currentTileOwner != otherTileOwner {
+				angle1 := (math.Pi / 4) + float64(n)*(math.Pi/2)
+				angle2 := (math.Pi / 4) + float64(n+1)*(math.Pi/2)
+
+				centerX := x1 + (radius / 2)
+				centerY := y1 + (radius / 2)
+
+				edgeX1 := centerX + ((radius-1)*math.Sqrt2/2)*math.Cos(angle1)
+				edgeY1 := centerY + ((radius-1)*math.Sqrt2/2)*math.Sin(angle1)
+				edgeX2 := centerX + ((radius-1)*math.Sqrt2/2)*math.Cos(angle2)
+				edgeY2 := centerY + ((radius-1)*math.Sqrt2/2)*math.Sin(angle2)
+
+				dc.SetRGB255(int(tileColor.R), int(tileColor.G), int(tileColor.B))
+				dc.SetLineWidth(lineWidth)
+				dc.DrawLine(edgeX1, edgeY1, edgeX2, edgeY2)
+				dc.Stroke()
+			}
+		}
+	}
 }
 
 func drawCityNames(dc *gg.Context, saveData *polytopiamapmodel.PolytopiaSaveOutput, mapHeight int, mapWidth int) {

@@ -2,9 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"strconv"
 	"strings"
+
+	"golang.org/x/image/draw"
+
+	"fyne.io/fyne/v2"
 
 	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
@@ -109,4 +114,60 @@ func pushRecent[T any](list []T, item T, max int) []T {
 		updated = updated[:max]
 	}
 	return updated
+}
+
+const fileURIScheme = "file://"
+
+// stripFileURIScheme strips a leading "file://" from a Fyne file URI string,
+// returning the underlying filesystem path. Returns uri unchanged if it
+// doesn't have that prefix.
+func stripFileURIScheme(uri string) string {
+	if strings.HasPrefix(uri, fileURIScheme) {
+		return uri[len(fileURIScheme):]
+	}
+	return uri
+}
+
+// buildStatusText formats the status bar text shown after a map loads.
+func buildStatusText(filename string, mapHeight, mapWidth, gameVersion int) string {
+	return fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d | Game Version: %d",
+		filename, mapHeight, mapWidth, gameVersion)
+}
+
+// computeDisplaySize returns the widget size, in Fyne logical units, needed
+// to show an imgW x imgH image at the given zoom level such that 1 image
+// pixel maps to 1 physical screen pixel at zoom=1, regardless of the
+// canvas's DPI scale factor.
+func computeDisplaySize(imgW, imgH, zoom int, scale float32) fyne.Size {
+	if scale <= 0 {
+		scale = 1
+	}
+	return fyne.NewSize(
+		float32(imgW*zoom)/scale,
+		float32(imgH*zoom)/scale,
+	)
+}
+
+// canHaveRoad reports whether roads are allowed on this tile: not water,
+// ocean, or mountain, and not a city.
+func canHaveRoad(tile polytopiamapmodel.TileData) bool {
+	if tile.Terrain == 1 || tile.Terrain == 2 || tile.Terrain == 4 {
+		return false
+	}
+	if tile.ImprovementData != nil && tile.ImprovementType == 1 {
+		return false
+	}
+	return true
+}
+
+// fixEncoding returns img as *image.RGBA, converting it if it isn't already
+// one (canvas.Image and PNG encoding both need a concrete RGBA buffer).
+func fixEncoding(img image.Image) *image.RGBA {
+	if rgba, ok := img.(*image.RGBA); ok {
+		return rgba
+	}
+
+	newImg := image.NewRGBA(img.Bounds())
+	draw.Draw(newImg, newImg.Bounds(), img, img.Bounds().Min, draw.Over)
+	return newImg
 }

@@ -60,7 +60,7 @@ func createTerrainSelect(edit *editor) *widget.Select {
 		edit.mapData.TileData[edit.tileY][edit.tileX].Terrain = optionInt
 		edit.mapData.TileData[edit.tileY][edit.tileX].Altitude = terrainToAltitude(optionInt)
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -77,7 +77,7 @@ func createClimateSelect(edit *editor) *widget.Select {
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].Climate = optionInt
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -102,7 +102,7 @@ func createResourceSelect(edit *editor) *widget.Select {
 		edit.mapData.TileData[edit.tileY][edit.tileX].ResourceExists = true
 		edit.mapData.TileData[edit.tileY][edit.tileX].ResourceType = optionInt
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -148,7 +148,7 @@ func createImprovementSelect(edit *editor) *widget.Select {
 		edit.mapData.TileData[edit.tileY][edit.tileX].ImprovementExists = true
 		edit.mapData.TileData[edit.tileY][edit.tileX].ImprovementType = optionInt
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -175,7 +175,7 @@ func createTileOwnerSelect(edit *editor) *widget.Select {
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].Owner = optionInt
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -188,7 +188,7 @@ func createHasRoadCheckbox(edit *editor) *widget.Check {
 
 		edit.mapData.TileData[edit.tileY][edit.tileX].HasRoad = value
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	})
 }
 
@@ -250,7 +250,7 @@ func createUnitOwnerSelect(edit *editor) *widget.Select {
 			edit.mapData.TileData[edit.tileY][edit.tileX].PassengerUnit.Owner = uint8(optionInt)
 		}
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -278,7 +278,7 @@ func createUnitTypeSelect(edit *editor) *widget.Select {
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].Unit.UnitType = uint16(optionInt)
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	}
 	return widget.NewSelect(options, changeFunc)
 }
@@ -319,7 +319,7 @@ func createTileFloodedCheckbox(edit *editor) *widget.Check {
 		}
 		edit.mapData.TileData[edit.tileY][edit.tileX].FloodedFlag = flag
 
-		edit.refreshMapImage()
+		edit.refreshTile(edit.tileX, edit.tileY)
 	})
 }
 
@@ -343,11 +343,10 @@ func (tileProperties *TileProperties) UpdateTileProperties(tileX int, tileY int,
 	}
 
 	tileProperties.hasRoadCheckbox.SetChecked(tile.HasRoad)
-	// Road shouldn't be allowed for water or mountains or cities
-	if tile.Terrain == 1 || tile.Terrain == 2 || tile.Terrain == 4 || (tile.ImprovementData != nil && tile.ImprovementType == 1) {
-		tileProperties.hasRoadCheckbox.Disable()
-	} else {
+	if canHaveRoad(tile) {
 		tileProperties.hasRoadCheckbox.Enable()
+	} else {
+		tileProperties.hasRoadCheckbox.Disable()
 	}
 
 	if tile.ImprovementData != nil && tile.ImprovementType == 1 {

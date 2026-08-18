@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"image"
 	"image/color"
 	"testing"
+
+	"fyne.io/fyne/v2"
 
 	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
@@ -226,6 +229,115 @@ func TestPushRecent(t *testing.T) {
 		_ = pushRecent(list, "a", 5)
 		if list[0] != "b" || list[1] != "c" {
 			t.Errorf("pushRecent() mutated input slice: %v", list)
+		}
+	})
+}
+
+func TestStripFileURIScheme(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"file:///C:/maps/foo.state", "/C:/maps/foo.state"},
+		{"file://C:/maps/foo.state", "C:/maps/foo.state"},
+		{"/no/scheme/here", "/no/scheme/here"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		if got := stripFileURIScheme(tt.in); got != tt.want {
+			t.Errorf("stripFileURIScheme(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestBuildStatusText(t *testing.T) {
+	got := buildStatusText("foo.state", 12, 34, 114)
+	want := "File: foo.state | Map Rows: 12 | Map Cols: 34 | Game Version: 114"
+
+	if got != want {
+		t.Errorf("buildStatusText() = %q, want %q", got, want)
+	}
+}
+
+func TestComputeDisplaySize(t *testing.T) {
+	tests := []struct {
+		name             string
+		imgW, imgH, zoom int
+		scale            float32
+		want             fyne.Size
+	}{
+		{"1x zoom, 1x scale", 100, 200, 1, 1, fyne.NewSize(100, 200)},
+		{"4x zoom, 1x scale", 100, 200, 4, 1, fyne.NewSize(400, 800)},
+		{"1x zoom, 1.25x scale", 100, 200, 1, 1.25, fyne.NewSize(80, 160)},
+		{"zero scale treated as 1x", 100, 200, 1, 0, fyne.NewSize(100, 200)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := computeDisplaySize(tt.imgW, tt.imgH, tt.zoom, tt.scale)
+			if got != tt.want {
+				t.Errorf("computeDisplaySize(%d, %d, %d, %v) = %v, want %v",
+					tt.imgW, tt.imgH, tt.zoom, tt.scale, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCanHaveRoad(t *testing.T) {
+	tests := []struct {
+		name string
+		tile polytopiamapmodel.TileData
+		want bool
+	}{
+		{"field", polytopiamapmodel.TileData{Terrain: 3}, true},
+		{"forest", polytopiamapmodel.TileData{Terrain: 5}, true},
+		{"water", polytopiamapmodel.TileData{Terrain: 1}, false},
+		{"ocean", polytopiamapmodel.TileData{Terrain: 2}, false},
+		{"mountain", polytopiamapmodel.TileData{Terrain: 4}, false},
+		{
+			"city on otherwise-valid terrain",
+			polytopiamapmodel.TileData{Terrain: 3, ImprovementType: 1, ImprovementData: &polytopiamapmodel.ImprovementData{}},
+			false,
+		},
+		{
+			"non-city improvement on valid terrain",
+			polytopiamapmodel.TileData{Terrain: 3, ImprovementType: 2, ImprovementData: &polytopiamapmodel.ImprovementData{}},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := canHaveRoad(tt.tile); got != tt.want {
+				t.Errorf("canHaveRoad(%+v) = %v, want %v", tt.tile, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFixEncoding(t *testing.T) {
+	t.Run("already RGBA is returned as-is", func(t *testing.T) {
+		src := image.NewRGBA(image.Rect(0, 0, 4, 4))
+		src.Set(1, 1, color.RGBA{R: 200, G: 0, B: 0, A: 255})
+
+		got := fixEncoding(src)
+		if got != src {
+			t.Error("fixEncoding() allocated a new image for an already-RGBA input, want the same pointer")
+		}
+	})
+
+	t.Run("non-RGBA is converted", func(t *testing.T) {
+		src := image.NewGray(image.Rect(0, 0, 2, 2))
+		src.SetGray(0, 0, color.Gray{Y: 128})
+
+		got := fixEncoding(src)
+		if got.Bounds() != src.Bounds() {
+			t.Errorf("fixEncoding() bounds = %v, want %v", got.Bounds(), src.Bounds())
+		}
+		r, g, b, _ := got.At(0, 0).RGBA()
+		if r != g || g != b {
+			t.Errorf("fixEncoding() did not preserve grayscale pixel: got RGB(%d,%d,%d)", r, g, b)
 		}
 	})
 }

@@ -6,10 +6,9 @@ import (
 	"image/png"
 	"path/filepath"
 
-	"golang.org/x/image/draw"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
@@ -71,8 +70,6 @@ func (e *editor) updateSizes() {
 	if e.img == nil {
 		return
 	}
-	physWidth := e.img.Bounds().Dx() * e.zoom
-	physHeight := e.img.Bounds().Dy() * e.zoom
 
 	c := fyne.CurrentApp().Driver().CanvasForObject(e.status)
 	scale := float32(1.0)
@@ -82,27 +79,15 @@ func (e *editor) updateSizes() {
 
 	e.drawSurface.img.Image = e.img
 	e.drawSurface.img.Refresh()
-	e.drawSurface.SetMinSize(fyne.NewSize(
-		float32(physWidth)/scale,
-		float32(physHeight)/scale))
+	e.drawSurface.SetMinSize(computeDisplaySize(e.img.Bounds().Dx(), e.img.Bounds().Dy(), e.zoom, scale))
 
 	e.drawSurface.Refresh()
-}
-
-func fixEncoding(img image.Image) *image.RGBA {
-	if rgba, ok := img.(*image.RGBA); ok {
-		return rgba
-	}
-
-	newImg := image.NewRGBA(img.Bounds())
-	draw.Draw(newImg, newImg.Bounds(), img, img.Bounds().Min, draw.Over)
-	return newImg
 }
 
 func (edit *editor) LoadFile(read fyne.URIReadCloser) {
 	defer read.Close()
 
-	inputFilename := read.URI().String()[7:]
+	inputFilename := stripFileURIScheme(read.URI().String())
 	fmt.Println("Input filename: ", inputFilename)
 
 	polytopiamapmodel.DecompressFile(inputFilename)
@@ -121,7 +106,7 @@ func (edit *editor) LoadFile(read fyne.URIReadCloser) {
 	edit.mapData = saveFileData
 	edit.mapHeight = len(saveFileData.TileData)
 	edit.mapWidth = len(saveFileData.TileData[0])
-	edit.status.SetText(fmt.Sprintf("File: %s | Map Rows: %d | Map Cols: %d | Game Version: %d",
+	edit.status.SetText(buildStatusText(
 		filepath.Base(read.URI().String()), edit.mapHeight, edit.mapWidth, edit.mapData.GameVersion))
 	edit.tileProperties.UpdateOwnerOptions(edit)
 
@@ -146,7 +131,7 @@ func (e *editor) Reload() {
 }
 
 func (edit *editor) WriteMapState() {
-	originalFilname := edit.uri[7:]
+	originalFilname := stripFileURIScheme(edit.uri)
 	decompressedFilename := originalFilname + ".decomp"
 	outputFilename := originalFilname
 
@@ -187,7 +172,12 @@ func (e *editor) saveToWriter(write fyne.URIWriteCloser) {
 
 		if err != nil {
 			fyne.LogError("Could not encode image", err)
+			if e.win != nil {
+				dialog.ShowError(err, e.win)
+			}
+			return
 		}
+		e.status.SetText(fmt.Sprintf("Saved %s", filepath.Base(write.URI().String())))
 	}
 }
 
@@ -273,10 +263,16 @@ func newLeftPropertiesBar(edit *editor) fyne.CanvasObject {
 	return container.NewScroll(container.NewVBox(options...))
 }
 
+// refreshMapImage redraws the whole map; use for edits that can affect more than one tile.
 func (edit *editor) refreshMapImage() {
 	img := getUpdatedImage(edit)
 	edit.img = fixEncoding(img)
 	edit.updateSizes()
+}
+
+// refreshTile redraws after a single-tile edit. Still a full redraw internally, but callers already declare their scope.
+func (edit *editor) refreshTile(tileX, tileY int) {
+	edit.refreshMapImage()
 }
 
 func getNewImage(edit *editor, newMapData *polytopiamapmodel.PolytopiaSaveOutput) image.Image {

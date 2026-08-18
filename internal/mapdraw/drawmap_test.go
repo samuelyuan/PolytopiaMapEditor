@@ -1,11 +1,27 @@
 package mapdraw
 
 import (
+	"image"
 	"image/color"
 	"testing"
 
+	"github.com/fogleman/gg"
 	polytopiamapmodel "github.com/samuelyuan/polytopiamapmodelgo"
 )
+
+// imageIsBlank reports whether every pixel is fully transparent, i.e.
+// nothing was drawn onto a fresh gg.Context.
+func imageIsBlank(img image.Image) bool {
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if _, _, _, a := img.At(x, y).RGBA(); a != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
 
 func TestGetImagePosition(t *testing.T) {
 	tests := []struct {
@@ -138,6 +154,103 @@ func TestBuildPlayerColorMap(t *testing.T) {
 	if got[2] != (color.RGBA{255, 255, 0, 255}) {
 		t.Errorf("buildPlayerColorMap()[2] = %v, want Oumaji yellow", got[2])
 	}
+}
+
+// Below: the per-tile draw functions, now testable without a whole map.
+
+func TestDrawSingleTerritoryTile_WaterFill(t *testing.T) {
+	dc := gg.NewContext(int(radius), int(radius))
+	saveData := &polytopiamapmodel.PolytopiaSaveOutput{
+		TileData: [][]polytopiamapmodel.TileData{{{Terrain: 1}}}, // water
+	}
+
+	drawSingleTerritoryTile(dc, saveData, 0, 0, GraphicsOptions{}, nil)
+
+	r, g, b, a := dc.Image().At(15, 15).RGBA()
+	got := color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)}
+	want := color.RGBA{95, 149, 149, 255}
+	if got != want {
+		t.Errorf("center pixel = %v, want water color %v", got, want)
+	}
+}
+
+func TestDrawSingleTerritoryTile_CapitalCityUsesPlayerColor(t *testing.T) {
+	dc := gg.NewContext(int(radius), int(radius))
+	saveData := &polytopiamapmodel.PolytopiaSaveOutput{
+		TileData: [][]polytopiamapmodel.TileData{{{
+			Terrain:         3,
+			Owner:           1,
+			ImprovementType: 1,
+			ImprovementData: &polytopiamapmodel.ImprovementData{},
+		}}},
+	}
+	playerColors := map[int]color.RGBA{1: {200, 10, 10, 255}}
+
+	drawSingleTerritoryTile(dc, saveData, 0, 0, GraphicsOptions{}, playerColors)
+
+	r, g, b, a := dc.Image().At(15, 15).RGBA()
+	got := color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)}
+	want := color.RGBA{200, 10, 10, 255}
+	if got != want {
+		t.Errorf("city icon center pixel = %v, want owner color %v", got, want)
+	}
+}
+
+func TestDrawRoadsForTile(t *testing.T) {
+	t.Run("isolated road tile draws a stub", func(t *testing.T) {
+		dc := gg.NewContext(int(radius), int(radius))
+		saveData := &polytopiamapmodel.PolytopiaSaveOutput{
+			TileData: [][]polytopiamapmodel.TileData{{{HasRoad: true}}},
+		}
+		drawRoadsForTile(dc, saveData, 1, 1, 0, 0)
+		if imageIsBlank(dc.Image()) {
+			t.Error("expected a road stub to be drawn for an isolated road tile")
+		}
+	})
+
+	t.Run("no road and no city draws nothing", func(t *testing.T) {
+		dc := gg.NewContext(int(radius), int(radius))
+		saveData := &polytopiamapmodel.PolytopiaSaveOutput{
+			TileData: [][]polytopiamapmodel.TileData{{{HasRoad: false}}},
+		}
+		drawRoadsForTile(dc, saveData, 1, 1, 0, 0)
+		if !imageIsBlank(dc.Image()) {
+			t.Error("expected nothing to be drawn for a tile with no road or city")
+		}
+	})
+}
+
+func TestDrawBordersForTile(t *testing.T) {
+	playerColors := map[int]color.RGBA{1: {200, 10, 10, 255}}
+	newSaveData := func(ownerA, ownerB int) *polytopiamapmodel.PolytopiaSaveOutput {
+		return &polytopiamapmodel.PolytopiaSaveOutput{
+			TileData: [][]polytopiamapmodel.TileData{{{Owner: ownerA}, {Owner: ownerB}}},
+		}
+	}
+
+	t.Run("differing owner neighbor draws a border", func(t *testing.T) {
+		dc := gg.NewContext(int(radius)*2, int(radius))
+		drawBordersForTile(dc, newSaveData(1, 2), 1, 2, playerColors, 0, 0)
+		if imageIsBlank(dc.Image()) {
+			t.Error("expected a border to be drawn when the neighbor owner differs")
+		}
+	})
+
+	t.Run("same owner neighbor draws nothing", func(t *testing.T) {
+		dc := gg.NewContext(int(radius)*2, int(radius))
+		drawBordersForTile(dc, newSaveData(1, 1), 1, 2, playerColors, 0, 0)
+		if !imageIsBlank(dc.Image()) {
+			t.Error("expected nothing to be drawn when the neighbor owner matches")
+		}
+	})
+
+	t.Run("unowned tile draws nothing", func(t *testing.T) {
+		dc := gg.NewContext(int(radius)*2, int(radius))
+		drawBordersForTile(dc, newSaveData(0, 1), 1, 2, playerColors, 0, 0)
+		if !imageIsBlank(dc.Image()) {
+			t.Error("expected nothing to be drawn for an unowned tile")
+		}
+	})
 }
 
 func TestGetTileCoordinates(t *testing.T) {
